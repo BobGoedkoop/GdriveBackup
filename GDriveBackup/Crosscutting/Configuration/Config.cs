@@ -1,19 +1,18 @@
 ﻿using System;
-using System.Diagnostics.Eventing.Reader;
 using System.IO;
-using System.Runtime.InteropServices;
-using GDocToPDF.BusinessLayer.Types;
+using GDriveBackup.Core.Constants;
 using Newtonsoft.Json.Linq;
+
 // ReSharper disable ArrangeThisQualifier
 // ReSharper disable ArrangeAccessorOwnerBody
 
-namespace GDocToPDF.BusinessLayer.Domain.LocalStorage
+namespace GDriveBackup.Crosscutting.Configuration
 {
-    public class LocalStorageDomain
+    public class Config
     {
         private JObject _db;
 
-        private static JObject Empty()
+        private static JObject Default()
         {
             return new JObject
             {
@@ -42,17 +41,17 @@ namespace GDocToPDF.BusinessLayer.Domain.LocalStorage
             try
             {
                 this._db = JObject.Parse(
-                    File.ReadAllText($"{ApplicationConstants.LocalStoragePath}")
+                    File.ReadAllText($"{ApplicationConstants.ConfigPath}")
                 );
 
             }
             catch ( FileNotFoundException )
             {
                 File
-                    .Create( $"{ApplicationConstants.LocalStoragePath}" )
+                    .Create( $"{ApplicationConstants.ConfigPath}" )
                     .Close();
 
-                this._db = Empty();
+                this._db = Default();
                 this.Persist();
 
                 this.Read();
@@ -62,18 +61,18 @@ namespace GDocToPDF.BusinessLayer.Domain.LocalStorage
 
         #region Singleton
 
-        private static LocalStorageDomain _instance = null;
+        private static Config _instance = null;
 
-        protected LocalStorageDomain()
+        protected Config()
         {
             this.Read();
         }
 
-        public static LocalStorageDomain GetInstance()
+        public static Config GetInstance()
         {
             if ( _instance == null )
             {
-                _instance = new LocalStorageDomain();
+                _instance = new Config();
             }
 
             return _instance;
@@ -83,10 +82,18 @@ namespace GDocToPDF.BusinessLayer.Domain.LocalStorage
 
         public bool Persist()
         {
-            File.WriteAllText( $"{ApplicationConstants.LocalStoragePath}", this._db.ToString() );
+            File.WriteAllText( $"{ApplicationConstants.ConfigPath}", this._db.ToString() );
             return true;
         }
 
+        public bool Reset()
+        {
+            this._db = Default();
+            this.Persist();
+
+            this.Read();
+            return true;
+        }
 
         public bool DebugConsole
         {

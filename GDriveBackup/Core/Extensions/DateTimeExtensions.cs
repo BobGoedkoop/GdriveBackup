@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GDocToPDF.BusinessLayer.Extensions
+namespace GDriveBackup.Core.Extensions
 {
     public static class DateTimeExtensions
     {

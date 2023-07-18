@@ -1,10 +1,10 @@
-﻿using GDocToPDF.BusinessLayer.Types;
+﻿using GDriveBackup.Core.Constants;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 
 // ReSharper disable StringLiteralTypo
 
-namespace GDocToPDF.BusinessLayer.Domain.GoogleDrive
+namespace GDriveBackup.BusinessLayer.Domain.GoogleDrive
 {
     // Authenticate using OAuth 2.0
     public class GoogleDriveAuthenticate

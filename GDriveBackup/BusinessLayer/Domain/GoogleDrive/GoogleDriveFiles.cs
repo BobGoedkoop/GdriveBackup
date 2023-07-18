@@ -1,18 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.SqlTypes;
 using System.IO;
-using System.Linq;
-using GDocToPDF.BusinessLayer.Domain.LocalStorage;
-using GDocToPDF.BusinessLayer.Domain.Logging;
-using GDocToPDF.BusinessLayer.Extensions;
-using GDocToPDF.BusinessLayer.Types;
+using GDriveBackup.Core.Constants;
+using GDriveBackup.Core.Extensions;
+using GDriveBackup.Crosscutting.Configuration;
+using GDriveBackup.Crosscutting.Logging;
 using Google.Apis.Drive.v3;
 
 // ReSharper disable StringLiteralTypo
 // ReSharper disable IdentifierTypo
 
-namespace GDocToPDF.BusinessLayer.Domain.GoogleDrive
+namespace GDriveBackup.BusinessLayer.Domain.GoogleDrive
 {
     // Documents and sheets, not images
     public abstract class GoogleDriveFiles
@@ -31,7 +29,7 @@ namespace GDocToPDF.BusinessLayer.Domain.GoogleDrive
         {
             var request = this._service.Files.List();
 
-            var lastRunDateIso8601 = LocalStorageDomain.GetInstance().LastRunDateTime.ToIso8601();
+            var lastRunDateIso8601 = Config.GetInstance().LastRunDateTime.ToIso8601();
             request.Q = $"trashed = false "  // Never return trashed files
                         + "and " 
                         + $"mimeType = '{mimeType}' " // Only return specific files: gdoc, sheet, ...

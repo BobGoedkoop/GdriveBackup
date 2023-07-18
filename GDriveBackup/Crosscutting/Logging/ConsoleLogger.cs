@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using GDocToPDF.BusinessLayer.Domain.LocalStorage;
+using GDriveBackup.Crosscutting.Configuration;
 
-namespace GDocToPDF.BusinessLayer.Domain.Logging
+namespace GDriveBackup.Crosscutting.Logging
 {
     public class ConsoleLogger
     {
@@ -33,7 +30,7 @@ namespace GDocToPDF.BusinessLayer.Domain.Logging
 
         public void Log( string text )
         {
-            if ( !LocalStorageDomain.GetInstance().DebugConsole )
+            if ( !Config.GetInstance().DebugConsole )
             {
                 return;
             }
@@ -43,7 +40,7 @@ namespace GDocToPDF.BusinessLayer.Domain.Logging
 
         public void Log( IList<Google.Apis.Drive.v3.Data.File> files )
         {
-            if (!LocalStorageDomain.GetInstance().DebugConsole)
+            if (!Config.GetInstance().DebugConsole)
             {
                 return;
             }

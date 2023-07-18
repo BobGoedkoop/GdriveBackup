@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using GDocToPDF.BusinessLayer.Extensions;
-using GDocToPDF.BusinessLayer.Types;
+﻿using GDriveBackup.Core.Constants;
 using Google.Apis.Drive.v3;
 
 // ReSharper disable StringLiteralTypo
 // ReSharper disable IdentifierTypo
 
-namespace GDocToPDF.BusinessLayer.Domain.GoogleDrive
+namespace GDriveBackup.BusinessLayer.Domain.GoogleDrive
 {
     // Documents and sheets, not images
     public class GoogleDriveFilesGdoc: GoogleDriveFiles
