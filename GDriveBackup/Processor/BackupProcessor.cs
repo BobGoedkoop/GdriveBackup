@@ -1,6 +1,7 @@
 ﻿using System;
 using GDriveBackup.BusinessLayer.Domain.GoogleDrive;
 using GDriveBackup.Crosscutting.Configuration;
+using GDriveBackup.Crosscutting.Logging;
 
 namespace GDriveBackup.Processor
 {
@@ -10,6 +11,9 @@ namespace GDriveBackup.Processor
 
         public void DoBackup()
         {
+            var logger = ConsoleLogger.GetInstance();
+            logger.Log( "\n>> Do Google Drive backup.");
+
             var gAuth = new GoogleDriveAuthenticate();
             var credential = gAuth.Authenticate();
 
@@ -19,9 +23,20 @@ namespace GDriveBackup.Processor
             var gFiles = new GoogleDriveFilesGdoc(service);
             gFiles.Download();
 
-            var localStorage = Config.GetInstance();
-            localStorage.LastRunDateTime = DateTime.UtcNow;
-            localStorage.Persist();
+            var gSheets = new GoogleDriveFilesGSheet( service );
+            gSheets.Download();
+
+
+            logger.Log(">> Update config.");
+
+            var config = Config.GetInstance();
+            config.LastRunDate = DateTime.UtcNow;
+            config.Persist();
+
+            logger.Log("<< Update config.");
+
+
+            logger.Log("<< Do Google Drive backup.");
         }
     }
 }

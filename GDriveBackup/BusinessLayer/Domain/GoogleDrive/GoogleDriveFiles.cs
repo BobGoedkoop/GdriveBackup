@@ -29,26 +29,26 @@ namespace GDriveBackup.BusinessLayer.Domain.GoogleDrive
         {
             var request = this._service.Files.List();
 
-            var lastRunDateIso8601 = Config.GetInstance().LastRunDateTime.ToIso8601();
+            var lastRunDateIso8601 = Config.GetInstance().LastRunDate.ToIso8601();
             request.Q = $"trashed = false "  // Never return trashed files
                         + "and " 
                         + $"mimeType = '{mimeType}' " // Only return specific files: gdoc, sheet, ...
-                        //+ "and " 
-                        //+ $"modifiedTime > '{lastRunDateIso8601}' " // Default time zone is UTC
+                        + "and "                         
+                        + $"modifiedTime > '{lastRunDateIso8601}' " // Default time zone is UTC
                 ;
             //request.Fields = "ModifiedTime";
 
             var results = request.ExecuteAsync().Result;
 
-            this._logger.Log( "\n\n" );
+            this._logger.Log( "\n" );
             this._logger.Log( results.Files );
 
             return results.Files;
         }
 
-        protected async void Download( string mimeType )
+        protected async void DoDownload( string mimeType )
         {
-            this._logger.Log( "\n\n" );
+            this._logger.Log( "\n" );
 
             // Get list of files
             var files = this.List( mimeType );

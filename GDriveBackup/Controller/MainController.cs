@@ -19,6 +19,12 @@ namespace GDriveBackup.Controller
             var cmdLine = CommandLineParser.Parse(args);
             cmdLineProcessor.Process( cmdLine );
 
+            if (cmdLine.HasCommand(CommandLineArgument.Backup))
+            {
+                var backupProcessor = new BackupProcessor();
+                backupProcessor.DoBackup();
+            }
+
             logger.Log($"\n\n{ApplicationConstants.ApplicationPressAnyKey}\n\n");
             Console.ReadKey();
         }

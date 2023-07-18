@@ -67,6 +67,7 @@
   <ItemGroup>
     <Compile Include="BusinessLayer\Domain\CommandLine\CommandLineConstants.cs" />
     <Compile Include="BusinessLayer\Domain\GoogleDrive\GoogleDriveAuthenticate.cs" />
+    <Compile Include="BusinessLayer\Domain\GoogleDrive\GoogleDriveFilesGsheet.cs" />
     <Compile Include="BusinessLayer\Domain\GoogleDrive\GoogleDriveFilesGdoc.cs" />
     <Compile Include="BusinessLayer\Domain\GoogleDrive\GoogleDriveFiles.cs" />
     <Compile Include="BusinessLayer\Domain\GoogleDrive\GoogleDriveService.cs" />

@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
+using System.Diagnostics.Eventing.Reader;
 using System.Security.Policy;
 
 // ReSharper disable UnusedMember.Local
@@ -34,6 +35,10 @@ namespace GDriveBackup.BusinessLayer.Domain.CommandLine
 
         public string[] Args => this._args;
 
+        public bool HasArguments()
+        {
+            return this._args.Length > 0;
+        }
         public bool HasCommand( string command )
         {
             var has = false;

@@ -16,6 +16,8 @@ namespace GDriveBackup.Crosscutting.Configuration
         {
             return new JObject
             {
+                { "Version", ApplicationConstants.ConfigVersion },
+
                 {
                     "Application", new JObject
                     {
@@ -25,7 +27,7 @@ namespace GDriveBackup.Crosscutting.Configuration
                     }
                 },
                 
-                { "LastRunDateTime", DateTime.MinValue },
+                { "LastRunDate", Config.DefaultLastRunDate },
 
                 {
                     "Debug", new JObject
@@ -79,6 +81,7 @@ namespace GDriveBackup.Crosscutting.Configuration
         }
         #endregion
 
+        public static DateTime DefaultLastRunDate = DateTime.MinValue;
 
         public bool Persist()
         {
@@ -119,20 +122,20 @@ namespace GDriveBackup.Crosscutting.Configuration
             }
         }
 
-        public DateTime LastRunDateTime
+        public DateTime LastRunDate
         {
             get
             {
-                var oLastRunDateTime  = this._db["LastRunDateTime"];
-                if ( oLastRunDateTime == null )
+                var oLastRunDate  = this._db["LastRunDate"];
+                if ( oLastRunDate == null )
                 {
-                    oLastRunDateTime = DateTime.MinValue;
+                    oLastRunDate = DateTime.MinValue;
                 }
-                return DateTime.Parse(oLastRunDateTime.ToString() );
+                return DateTime.Parse(oLastRunDate.ToString() );
             }
             set
             {
-                this._db["LastRunDateTime"] = value;
+                this._db["LastRunDate"] = value;
             }
         }
     }

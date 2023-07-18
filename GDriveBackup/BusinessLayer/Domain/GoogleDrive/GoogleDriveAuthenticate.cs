@@ -1,4 +1,5 @@
 ﻿using GDriveBackup.Core.Constants;
+using GDriveBackup.Crosscutting.Logging;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 
@@ -12,12 +13,16 @@ namespace GDriveBackup.BusinessLayer.Domain.GoogleDrive
 
         public GoogleCredential Authenticate()
         {
+            var logger = ConsoleLogger.GetInstance();
+            logger.Log( $"\n>> Authenticte.");
+
             string[] scopes = new string[] { DriveService.ScopeConstants.Drive };
 
             var credential = GoogleCredential
                 .FromFile( ApplicationConstants.JsonCredentialsPath )
                 .CreateScoped(scopes);
-            
+
+            logger.Log($"<< Authenticte.");
             return credential;
         }
     }

@@ -11,6 +11,7 @@ namespace GDriveBackup.Core.Constants
 
         public static string Gfolder = "application/vnd.google-apps.folder";
         public static string Gdoc = "application/vnd.google-apps.document";
+        public static string Gsheet = "application/vnd.google-apps.spreadsheet";
 
     }
 }
