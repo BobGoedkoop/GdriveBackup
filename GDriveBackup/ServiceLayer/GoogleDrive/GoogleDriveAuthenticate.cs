@@ -5,7 +5,7 @@ using Google.Apis.Drive.v3;
 
 // ReSharper disable StringLiteralTypo
 
-namespace GDriveBackup.BusinessLayer.Domain.GoogleDrive
+namespace GDriveBackup.ServiceLayer.GoogleDrive
 {
     // Authenticate using OAuth 2.0
     public class GoogleDriveAuthenticate

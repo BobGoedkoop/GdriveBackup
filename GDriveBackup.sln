@@ -5,6 +5,8 @@ VisualStudioVersion = 17.6.33815.320
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GDriveBackup", "GDriveBackup\GDriveBackup.csproj", "{F6A0366C-B0B9-4034-847F-F50D86CEE289}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GDriveBackup.Tests", "..\GDriveBackup.Tests\GDriveBackup.Tests.csproj", "{B41ADD89-D59F-451F-9D3C-4EEDCE2FCE8C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{F6A0366C-B0B9-4034-847F-F50D86CEE289}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F6A0366C-B0B9-4034-847F-F50D86CEE289}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F6A0366C-B0B9-4034-847F-F50D86CEE289}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B41ADD89-D59F-451F-9D3C-4EEDCE2FCE8C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B41ADD89-D59F-451F-9D3C-4EEDCE2FCE8C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B41ADD89-D59F-451F-9D3C-4EEDCE2FCE8C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B41ADD89-D59F-451F-9D3C-4EEDCE2FCE8C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

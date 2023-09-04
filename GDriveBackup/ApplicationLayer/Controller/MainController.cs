@@ -1,10 +1,11 @@
 ﻿using System;
-using GDriveBackup.BusinessLayer.Domain.CommandLine;
+using CommandLine;
+using GDriveBackup.ApplicationLayer.Processor;
+using GDriveBackup.BusinessLayer.Domain.CommandLineAdapter;
 using GDriveBackup.Core.Constants;
 using GDriveBackup.Crosscutting.Logging;
-using GDriveBackup.Processor;
 
-namespace GDriveBackup.Controller
+namespace GDriveBackup.ApplicationLayer.Controller
 {
     public class MainController
     {
@@ -14,6 +15,10 @@ namespace GDriveBackup.Controller
         {
             var logger = ConsoleLogger.GetInstance();
             logger.Log($"{ApplicationConstants.ApplicationName} {ApplicationConstants.ApplicationVersion}");
+
+
+            var cmdLine2 = new CommandLineAdapter( args );
+            cmdLine2.Parse();
 
             var cmdLineProcessor = new CommandLineProcessor();
             var cmdLine = CommandLineParser.Parse(args);

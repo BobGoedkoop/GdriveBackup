@@ -4,19 +4,19 @@ using Google.Apis.Drive.v3;
 // ReSharper disable StringLiteralTypo
 // ReSharper disable IdentifierTypo
 
-namespace GDriveBackup.BusinessLayer.Domain.GoogleDrive
+namespace GDriveBackup.ServiceLayer.GoogleDrive
 {
     // Documents and sheets, not images
-    public class GoogleDriveFilesGSheet : GoogleDriveFiles
+    public class GoogleDriveFilesGdoc: GoogleDriveFiles
     {
-        public GoogleDriveFilesGSheet( DriveService service ) : base( service )
+        public GoogleDriveFilesGdoc( DriveService service ) : base( service )
         {
 
         }
 
         public override void Download()
         {
-            base.DoDownload( MimeTypeConstants.Gsheet );
+            base.DoDownload(MimeTypeConstants.Gdoc);
         }
     }
 }

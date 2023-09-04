@@ -34,6 +34,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="CommandLine, Version=2.9.1.0, Culture=neutral, PublicKeyToken=5a870481e358d379, processorArchitecture=MSIL">
+      <HintPath>..\packages\CommandLineParser.2.9.1\lib\net461\CommandLine.dll</HintPath>
+    </Reference>
     <Reference Include="Google.Apis, Version=1.61.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
       <HintPath>..\packages\Google.Apis.1.61.0\lib\net45\Google.Apis.dll</HintPath>
     </Reference>
@@ -65,12 +68,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BusinessLayer\Domain\CommandLine\CommandLineConstants.cs" />
-    <Compile Include="BusinessLayer\Domain\GoogleDrive\GoogleDriveAuthenticate.cs" />
-    <Compile Include="BusinessLayer\Domain\GoogleDrive\GoogleDriveFilesGsheet.cs" />
-    <Compile Include="BusinessLayer\Domain\GoogleDrive\GoogleDriveFilesGdoc.cs" />
-    <Compile Include="BusinessLayer\Domain\GoogleDrive\GoogleDriveFiles.cs" />
-    <Compile Include="BusinessLayer\Domain\GoogleDrive\GoogleDriveService.cs" />
+    <Compile Include="BusinessLayer\Domain\CommandLineAdapter\CommandLineConstants.cs" />
+    <Compile Include="BusinessLayer\Domain\CommandLineAdapter\CommandLineAdapter.cs" />
+    <Compile Include="ServiceLayer\GoogleDrive\GoogleDriveAuthenticate.cs" />
+    <Compile Include="ServiceLayer\GoogleDrive\GoogleDriveFilesGsheet.cs" />
+    <Compile Include="ServiceLayer\GoogleDrive\GoogleDriveFilesGdoc.cs" />
+    <Compile Include="ServiceLayer\GoogleDrive\GoogleDriveFiles.cs" />
+    <Compile Include="ServiceLayer\GoogleDrive\GoogleDriveService.cs" />
     <Compile Include="Crosscutting\Configuration\Config.cs" />
     <Compile Include="Crosscutting\Logging\ConsoleLogger.cs" />
     <Compile Include="Core\Extensions\DateTimeExtensions.cs" />
@@ -79,10 +83,10 @@
     <Compile Include="Core\Constants\GoogleDriveFileIdConstants.cs" />
     <Compile Include="Core\Constants\FileExtensionConstants.cs" />
     <Compile Include="Core\Constants\MimeTypeConstants.cs" />
-    <Compile Include="BusinessLayer\Domain\CommandLine\CommandLineParser.cs" />
-    <Compile Include="Controller\MainController.cs" />
-    <Compile Include="Processor\BackupProcessor.cs" />
-    <Compile Include="Processor\CommandLineProcessor.cs" />
+    <Compile Include="BusinessLayer\Domain\CommandLineAdapter\CommandLineParser.cs" />
+    <Compile Include="ApplicationLayer\Controller\MainController.cs" />
+    <Compile Include="ApplicationLayer\Processor\BackupProcessor.cs" />
+    <Compile Include="ApplicationLayer\Processor\CommandLineProcessor.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -90,6 +94,8 @@
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="DataLayer\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

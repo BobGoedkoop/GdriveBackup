@@ -1,10 +1,9 @@
-﻿using GDriveBackup.BusinessLayer.Domain.CommandLine;
+﻿using GDriveBackup.BusinessLayer.Domain.CommandLineAdapter;
 using GDriveBackup.Core.Constants;
 using GDriveBackup.Crosscutting.Configuration;
 using GDriveBackup.Crosscutting.Logging;
-using System;
 
-namespace GDriveBackup.Processor
+namespace GDriveBackup.ApplicationLayer.Processor
 {
     public class CommandLineProcessor
     {

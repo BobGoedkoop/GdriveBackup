@@ -10,7 +10,7 @@ using Google.Apis.Drive.v3;
 // ReSharper disable StringLiteralTypo
 // ReSharper disable IdentifierTypo
 
-namespace GDriveBackup.BusinessLayer.Domain.GoogleDrive
+namespace GDriveBackup.ServiceLayer.GoogleDrive
 {
     // Documents and sheets, not images
     public abstract class GoogleDriveFiles

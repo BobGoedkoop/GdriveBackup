@@ -1,11 +1,8 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
-using System.Diagnostics.Eventing.Reader;
-using System.Security.Policy;
+﻿using System;
 
 // ReSharper disable UnusedMember.Local
 
-namespace GDriveBackup.BusinessLayer.Domain.CommandLine
+namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter
 {
     public class CommandLineParser
     {
@@ -62,6 +59,11 @@ namespace GDriveBackup.BusinessLayer.Domain.CommandLine
             }
             return cmd;
 
+        }
+
+        public string GetCommandValue( string command )
+        {
+            throw new NotImplementedException();
         }
 
     }

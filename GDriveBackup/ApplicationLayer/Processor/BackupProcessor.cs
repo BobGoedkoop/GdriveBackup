@@ -1,9 +1,9 @@
 ﻿using System;
-using GDriveBackup.BusinessLayer.Domain.GoogleDrive;
 using GDriveBackup.Crosscutting.Configuration;
 using GDriveBackup.Crosscutting.Logging;
+using GDriveBackup.ServiceLayer.GoogleDrive;
 
-namespace GDriveBackup.Processor
+namespace GDriveBackup.ApplicationLayer.Processor
 {
     public class BackupProcessor
     {
