@@ -1,6 +1,8 @@
-﻿namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter
-{
+﻿using System;
 
+namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter._obsolete
+{
+    [Obsolete]
     public class CommandLineArgument
     {
         public const string Prefix = "-";
@@ -9,6 +11,7 @@
         public const string Backup = "Backup";
     }
 
+    [Obsolete]
     public class CommandLineArgumentValue
     {
         public const string Reset = "Reset";
