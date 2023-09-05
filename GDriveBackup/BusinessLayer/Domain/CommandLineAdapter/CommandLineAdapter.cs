@@ -6,8 +6,18 @@ namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter
 {
     public class CommandLineOptions
     {
-        [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages.")]
-        public bool Verbose { get; set; }
+        [Option('b', "backup", Required = true, HelpText = "Do the backup.")]
+        public bool Backup { get; set; }
+
+        [Option('c', "config", Required = false, HelpText = "Manipulate the configuration.")]
+        public bool Config { get; set; }
+    }
+
+    [Verb( "all", HelpText ="Do the full backup, ignore last run date.")]
+    public class CommandLineBackupOptions
+    {
+        [Option('a', "all", Required = false, HelpText = "Full backup.")]
+        public bool All { get; set; }
     }
 
     public class CommandLineAdapter
@@ -19,6 +29,7 @@ namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter
 
         private static void ParseOk( object opts )
         {
+            var options = opts as CommandLineOptions;
 
         }
 
@@ -43,7 +54,9 @@ namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter
         public void Parse()
         {
             CommandLine.Parser.Default
-                .ParseArguments<CommandLineOptions>( this._args )
+                .ParseArguments<
+                    CommandLineOptions,
+                    CommandLineBackupOptions>( this._args )
                 .WithParsed( ParseOk )
                 .WithNotParsed( ParseNok )
                 ;
