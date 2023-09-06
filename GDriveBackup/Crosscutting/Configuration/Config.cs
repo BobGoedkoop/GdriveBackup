@@ -79,6 +79,7 @@ namespace GDriveBackup.Crosscutting.Configuration
 
             return _instance;
         }
+        
         #endregion
 
         public static DateTime DefaultLastRunDate = DateTime.MinValue;
