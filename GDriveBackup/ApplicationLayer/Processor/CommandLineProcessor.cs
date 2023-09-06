@@ -38,12 +38,12 @@ namespace GDriveBackup.ApplicationLayer.Processor
             if (cmdLineModel.BackupAll)
             {
                 var backup = new BackupDomain();
-                backup.Start();
+                backup.Start( Config.DefaultLastRunDate );
             }
-            else if (cmdLineModel.BackupNew)
+            else if (cmdLineModel.BackupChanges)
             {
                 var backup = new BackupDomain();
-                backup.Start();
+                backup.Start( Config.GetInstance().LastRunDate );
             }
         }
     }

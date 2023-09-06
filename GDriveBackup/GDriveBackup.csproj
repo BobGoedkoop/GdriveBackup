@@ -69,10 +69,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BusinessLayer\Domain\Backup\BackupDomain.cs" />
-    <Compile Include="BusinessLayer\Domain\CommandLineAdapter\_obsolete\CommandLineConstants.cs" />
     <Compile Include="BusinessLayer\Domain\CommandLineAdapter\CommandLineParser.cs" />
     <Compile Include="BusinessLayer\Domain\CommandLineAdapter\CommandLineOptions.cs" />
     <Compile Include="BusinessLayer\Domain\CommandLineAdapter\Model\CommandLineModel.cs" />
+    <Compile Include="Core\Extensions\StringExtensions.cs" />
     <Compile Include="ServiceLayer\GoogleDrive\GoogleDriveAuthenticate.cs" />
     <Compile Include="ServiceLayer\GoogleDrive\GoogleDriveFilesGsheet.cs" />
     <Compile Include="ServiceLayer\GoogleDrive\GoogleDriveFilesGdoc.cs" />
@@ -86,7 +86,6 @@
     <Compile Include="Core\Constants\GoogleDriveFileIdConstants.cs" />
     <Compile Include="Core\Constants\FileExtensionConstants.cs" />
     <Compile Include="Core\Constants\MimeTypeConstants.cs" />
-    <Compile Include="BusinessLayer\Domain\CommandLineAdapter\_obsolete\CommandLineParser.cs" />
     <Compile Include="ApplicationLayer\Controller\MainController.cs" />
     <Compile Include="ApplicationLayer\Processor\CommandLineProcessor.cs" />
     <Compile Include="Program.cs" />

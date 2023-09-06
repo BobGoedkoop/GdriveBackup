@@ -15,10 +15,9 @@ namespace GDriveBackup.ApplicationLayer.Controller
             var logger = ConsoleLogger.GetInstance();
             logger.Log($"{ApplicationConstants.ApplicationName} {ApplicationConstants.ApplicationVersion}");
 
-            var cmdLineModel = new CommandLineParser(args)
-                .Parse();
 
             var cmdLineProcessor = new CommandLineProcessor();
+            var cmdLineModel = CommandLineParser.Parse(args);
             cmdLineProcessor.Process(cmdLineModel);
 
 

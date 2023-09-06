@@ -11,7 +11,7 @@ namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter
 {
     public sealed class CommandLineOptions
     {
-        [Option('b', "backup", Required = true, Default = "new", HelpText = "new: only changes since last run, all: all files.")]
+        [Option('b', "backup", Required = false,  HelpText = "changes: only changes since last run, all: all files.")]
         public string Backup { get; set; }
 
         [Option('c', "config", Required = false, HelpText = "Manipulate the configuration.")]

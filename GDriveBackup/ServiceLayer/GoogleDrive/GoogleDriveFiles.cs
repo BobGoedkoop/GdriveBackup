@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Policy;
 using GDriveBackup.Core.Constants;
 using GDriveBackup.Core.Extensions;
 using GDriveBackup.Crosscutting.Configuration;
@@ -19,23 +20,41 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive
         private readonly ConsoleLogger _logger;
 
 
+        private string BuildQuery( string mimeType, DateTime lastRunDate )
+        {
+            var query = $"trashed = false " // Never return trashed files
+                        + "and "
+                        + $"mimeType = '{mimeType}' " // Only return specific files: gdoc, sheet, ...
+                ;
+
+            if ( lastRunDate != Config.DefaultLastRunDate )
+            {
+                query += "and "
+                         + $"modifiedTime > '{lastRunDate.ToIso8601()}' " // Default time zone is UTC
+                    ;
+
+            }
+
+            this._logger.Log($"Request Q [{query}].");
+
+            return query;
+        }
+
         /// <summary>
         /// 
         /// </summary>
         /// <param name="mimeType"></param>
+        /// <param name="lastRunDate"></param>
         /// <returns></returns>
         /// <see cref="https://developers.google.com/drive/api/guides/search-files"/>
-        protected IList<Google.Apis.Drive.v3.Data.File> List( string mimeType )
+        protected IList<Google.Apis.Drive.v3.Data.File> List( string mimeType, DateTime lastRunDate  )
         {
             var request = this._service.Files.List();
 
-            var lastRunDateIso8601 = Config.GetInstance().LastRunDate.ToIso8601();
-            request.Q = $"trashed = false "  // Never return trashed files
-                        + "and " 
-                        + $"mimeType = '{mimeType}' " // Only return specific files: gdoc, sheet, ...
-                        + "and "                         
-                        + $"modifiedTime > '{lastRunDateIso8601}' " // Default time zone is UTC
-                ;
+            request.Q = this.BuildQuery( 
+                mimeType, 
+                lastRunDate 
+            );
             //request.Fields = "ModifiedTime";
 
             var results = request.ExecuteAsync().Result;
@@ -46,12 +65,12 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive
             return results.Files;
         }
 
-        protected async void DoDownload( string mimeType )
+        protected async void DoDownload( string mimeType, DateTime lastRunDate)
         {
             this._logger.Log( "\n" );
 
             // Get list of files
-            var files = this.List( mimeType );
+            var files = this.List( mimeType, lastRunDate  );
 
             if ( files.Count <= 0 )
             {
@@ -79,6 +98,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive
                     await getRequest.DownloadAsync( filestream );
                 }
             }
+
         }
 
 
@@ -90,6 +110,6 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive
         }
 
 
-        public abstract void Download();
+        public abstract void Download(DateTime lastRunDate);
     }
 }

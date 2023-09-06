@@ -1,17 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using CommandLine;
 using GDriveBackup.BusinessLayer.Domain.CommandLineAdapter.Model;
 
 namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter
 {
 
-    public class CommandLineParser
+    public sealed class CommandLineParser
     {
-        private readonly string[] _args;
-
-        private readonly CommandLineModel _commandLineModel;
+        private static CommandLineModel _commandLineModel;
 
         #region Private section
 
@@ -19,24 +16,34 @@ namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter
         /// Command line arguments passed are valid
         /// </summary>
         /// <param name="opts"></param>
-        private void ParseOk( object opts )
+        private static void ParseOk( object opts )
         {
             var options = opts as CommandLineOptions;
 
             if ( options == null )
             {
-                throw new ArgumentNullException( "options" );
+                throw new ArgumentNullException(nameof(options));
             }
-            
-            // Todo Set the _commandLineModel
 
-            if ( options.Backup == "new" )
+
+            if ( options.Config == "reset" )
             {
-                this._commandLineModel.BackupNew = true;
+                _commandLineModel.ConfigReset = true;
+            }
+
+            if ( options.Config == "resetLastRunDate" )
+            {
+                _commandLineModel.ConfigResetLastRunDate = true;
+            }
+
+
+            if ( options.Backup == "changes")
+            {
+                _commandLineModel.BackupChanges = true;
             }
             if (options.Backup == "all")
             {
-                this._commandLineModel.BackupAll = true;
+                _commandLineModel.BackupAll = true;
             }
         }
 
@@ -44,34 +51,29 @@ namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter
         /// Command line arguments passed are NOT valid
         /// </summary>
         /// <param name="errs"></param>
-        private void ParseNok(IEnumerable<Error> errs)
+        private static void ParseNok(IEnumerable<Error> errs)
         {
-            this._commandLineModel.Error = true;
+            _commandLineModel.Error = true;
         }
 
         #endregion
 
 
-        public CommandLineParser()
-            : this( new string[] { } )
+        static CommandLineParser(  )
         {
-
         }
 
-        public CommandLineParser( string[] args )
+        public static CommandLineModel Parse( string[] args )
         {
-            this._commandLineModel = new CommandLineModel();
-            this._args = args;
-        }
+            _commandLineModel = new CommandLineModel();
 
-        public CommandLineModel Parse()
-        {
-            CommandLine.Parser.Default
-                .ParseArguments<CommandLineOptions>( this._args )
+            var parseResult = CommandLine.Parser.Default
+                .ParseArguments<CommandLineOptions>( args)
                 .WithParsed( ParseOk )
                 .WithNotParsed( ParseNok )
                 ;
-            return this._commandLineModel;
+
+            return _commandLineModel;
         }
     }
 }

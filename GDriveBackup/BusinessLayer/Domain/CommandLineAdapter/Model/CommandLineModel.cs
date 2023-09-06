@@ -5,7 +5,7 @@ namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter.Model
 {
     public class CommandLineModel
     {
-        public bool BackupNew { get; set; } = false;
+        public bool BackupChanges { get; set; } = false;
         public bool BackupAll { get; set; } = false;
 
         public bool ConfigReset { get; set; } = false;

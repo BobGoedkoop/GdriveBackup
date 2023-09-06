@@ -1,5 +1,6 @@
 ﻿using GDriveBackup.Core.Constants;
 using Google.Apis.Drive.v3;
+using System;
 
 // ReSharper disable StringLiteralTypo
 // ReSharper disable IdentifierTypo
@@ -14,9 +15,9 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive
 
         }
 
-        public override void Download()
+        public override void Download(DateTime lastRunDate)
         {
-            base.DoDownload(MimeTypeConstants.Gdoc);
+            base.DoDownload(MimeTypeConstants.Gdoc, lastRunDate );
         }
     }
 }
