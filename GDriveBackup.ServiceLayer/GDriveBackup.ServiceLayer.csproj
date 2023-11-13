@@ -4,18 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{F6A0366C-B0B9-4034-847F-F50D86CEE289}</ProjectGuid>
-    <OutputType>Exe</OutputType>
-    <RootNamespace>GDriveBackup</RootNamespace>
-    <AssemblyName>GDriveBackup</AssemblyName>
+    <ProjectGuid>{12BF6513-8D4B-4EB4-8B66-1D208A2B3149}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>GDriveBackup.ServiceLayer</RootNamespace>
+    <AssemblyName>GDriveBackup.ServiceLayer</AssemblyName>
     <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -25,7 +23,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -69,23 +66,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Program.cs" />
+    <Compile Include="GoogleDrive\GoogleDriveAuthenticate.cs" />
+    <Compile Include="GoogleDrive\GoogleDriveFiles.cs" />
+    <Compile Include="GoogleDrive\GoogleDriveFilesGdoc.cs" />
+    <Compile Include="GoogleDrive\GoogleDriveFilesGsheet.cs" />
+    <Compile Include="GoogleDrive\GoogleDriveService.cs" />
+    <Compile Include="GoogleDrive\GoogleFolderWalker.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
-    <ProjectReference Include="..\GDriveBackup.ApplicationLayer\GDriveBackup.ApplicationLayer.csproj">
-      <Project>{04fbb1ab-05c8-4971-924d-3c8e9ee3d072}</Project>
-      <Name>GDriveBackup.ApplicationLayer</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\GDriveBackup.BusinessLayer\GDriveBackup.BusinessLayer.csproj">
-      <Project>{c0afe0b7-8f1a-4685-b65d-994baf5e74c0}</Project>
-      <Name>GDriveBackup.BusinessLayer</Name>
-    </ProjectReference>
     <ProjectReference Include="..\GDriveBackup.Core\GDriveBackup.Core.csproj">
       <Project>{61c6eb69-e435-4ec3-87fa-58d2a4f58e83}</Project>
       <Name>GDriveBackup.Core</Name>
@@ -93,14 +85,6 @@
     <ProjectReference Include="..\GDriveBackup.Crosscutting\GDriveBackup.Crosscutting.csproj">
       <Project>{f1337df1-11d8-4ad5-92e9-e6c7b17a06c0}</Project>
       <Name>GDriveBackup.Crosscutting</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\GDriveBackup.DataLayer\GDriveBackup.DataLayer.csproj">
-      <Project>{f9695aad-5e05-4e45-9354-095a31447eb2}</Project>
-      <Name>GDriveBackup.DataLayer</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\GDriveBackup.ServiceLayer\GDriveBackup.ServiceLayer.csproj">
-      <Project>{12bf6513-8d4b-4eb4-8b66-1d208a2b3149}</Project>
-      <Name>GDriveBackup.ServiceLayer</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

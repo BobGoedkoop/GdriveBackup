@@ -74,8 +74,11 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive
 
             if ( files.Count <= 0 )
             {
+                this._logger.Log($"No [{mimeType}] files to download.\n");
                 return;
             }
+
+            this._logger.Log($"Downloading [{files.Count}] [{mimeType}] files.\n");
 
             // Do Download
             foreach ( var file in files )
@@ -99,6 +102,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive
                 }
             }
 
+            this._logger.Log($"Downloaded all [{mimeType}] files.\n");
         }
 
 

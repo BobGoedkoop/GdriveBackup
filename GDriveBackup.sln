@@ -7,6 +7,18 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GDriveBackup", "GDriveBacku
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GDriveBackup.Tests", "..\GDriveBackup.Tests\GDriveBackup.Tests.csproj", "{B41ADD89-D59F-451F-9D3C-4EEDCE2FCE8C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GDriveBackup.DataLayer", "GDriveBackup.DataLayer\GDriveBackup.DataLayer.csproj", "{F9695AAD-5E05-4E45-9354-095A31447EB2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GDriveBackup.Core", "GDriveBackup.Core\GDriveBackup.Core.csproj", "{61C6EB69-E435-4EC3-87FA-58D2A4F58E83}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GDriveBackup.Crosscutting", "GDriveBackup.Crosscutting\GDriveBackup.Crosscutting.csproj", "{F1337DF1-11D8-4AD5-92E9-E6C7B17A06C0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GDriveBackup.ServiceLayer", "GDriveBackup.ServiceLayer\GDriveBackup.ServiceLayer.csproj", "{12BF6513-8D4B-4EB4-8B66-1D208A2B3149}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GDriveBackup.BusinessLayer", "GDriveBackup.BusinessLayer\GDriveBackup.BusinessLayer.csproj", "{C0AFE0B7-8F1A-4685-B65D-994BAF5E74C0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GDriveBackup.ApplicationLayer", "GDriveBackup.ApplicationLayer\GDriveBackup.ApplicationLayer.csproj", "{04FBB1AB-05C8-4971-924D-3C8E9EE3D072}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +33,30 @@ Global
 		{B41ADD89-D59F-451F-9D3C-4EEDCE2FCE8C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B41ADD89-D59F-451F-9D3C-4EEDCE2FCE8C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B41ADD89-D59F-451F-9D3C-4EEDCE2FCE8C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F9695AAD-5E05-4E45-9354-095A31447EB2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9695AAD-5E05-4E45-9354-095A31447EB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F9695AAD-5E05-4E45-9354-095A31447EB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F9695AAD-5E05-4E45-9354-095A31447EB2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61C6EB69-E435-4EC3-87FA-58D2A4F58E83}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61C6EB69-E435-4EC3-87FA-58D2A4F58E83}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61C6EB69-E435-4EC3-87FA-58D2A4F58E83}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61C6EB69-E435-4EC3-87FA-58D2A4F58E83}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F1337DF1-11D8-4AD5-92E9-E6C7B17A06C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1337DF1-11D8-4AD5-92E9-E6C7B17A06C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1337DF1-11D8-4AD5-92E9-E6C7B17A06C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1337DF1-11D8-4AD5-92E9-E6C7B17A06C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{12BF6513-8D4B-4EB4-8B66-1D208A2B3149}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{12BF6513-8D4B-4EB4-8B66-1D208A2B3149}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{12BF6513-8D4B-4EB4-8B66-1D208A2B3149}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{12BF6513-8D4B-4EB4-8B66-1D208A2B3149}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C0AFE0B7-8F1A-4685-B65D-994BAF5E74C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C0AFE0B7-8F1A-4685-B65D-994BAF5E74C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C0AFE0B7-8F1A-4685-B65D-994BAF5E74C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C0AFE0B7-8F1A-4685-B65D-994BAF5E74C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{04FBB1AB-05C8-4971-924D-3C8E9EE3D072}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{04FBB1AB-05C8-4971-924D-3C8E9EE3D072}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{04FBB1AB-05C8-4971-924D-3C8E9EE3D072}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{04FBB1AB-05C8-4971-924D-3C8E9EE3D072}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
