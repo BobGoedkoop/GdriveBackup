@@ -1,23 +1,29 @@
-﻿using Google.Apis.Drive.v3;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using GDriveBackup.Core.Constants;
 using GDriveBackup.Core.Extensions;
-using GDriveBackup.Crosscutting.Configuration;
 using GDriveBackup.Crosscutting.Logging;
+using GDriveBackup.ServiceLayer.GoogleDrive.Files;
+using Google.Apis.Drive.v3;
 using Google.Apis.Drive.v3.Data;
 using Google.Apis.Requests;
-using Newtonsoft.Json;
 using File = Google.Apis.Drive.v3.Data.File;
 
 // ReSharper disable IdentifierTypo
 
-namespace GDriveBackup.ServiceLayer.GoogleDrive
+namespace GDriveBackup.ServiceLayer.GoogleDrive.FolderWalker
 {
+    public class WalkerCurrentFolder
+    {
+        public WalkerCurrentFolder()
+        {
+
+        }
+
+        public File GDriveFile { get; set; }
+        public string LocalFullPath { get; set; }
+    }
 
     /// <summary>
     /// 
@@ -30,6 +36,23 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive
     {
         private readonly DriveService _service;
         private readonly ConsoleLogger _logger;
+
+        private void DoFolderHandler( WalkerCurrentFolder currentFolder )
+        {
+            if ( this.OnFolder == null )
+            {
+                return;
+            }
+
+            try
+            {
+                this.OnFolder( currentFolder );
+            }
+            catch ( Exception ex )
+            {
+                this._logger.Log( ex );
+            }
+        }
 
         //private  static void PrettyPrint(DriveService service, FileList list, string indent)
         //{
@@ -45,71 +68,21 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive
         //    }
         //}
 
-        private FileList GetFoldersIn( string folderId )
-        {
-            // By default this will return ALL files 
-            var request = this._service.Files.List();
 
-            request.Q = $"trashed = false " // Never return trashed files
-                        + "and "
-                        + "mimeType = 'application/vnd.google-apps.folder' " // Retrieve folders only
-                        + "and "
-                        //+ "'root' in parents" // Retrieve folders in 'root'
-                        + $"'{folderId}' in parents" // Retrieve folders in 'folderId'
-                ;
-            this._logger.Log( $"Request Q [{request.Q}]." );
-
-            request.PageSize = 100; // not picked up
-
-
-            // https://www.daimto.com/list-all-files-on-google-drive/
-            // By using a page streamer I don't have to worry about the nextpagetoken
-            var pageStreamer = new PageStreamer<File, FilesResource.ListRequest, FileList, string>(
-                ( req, token ) => request.PageToken = token,
-                response => response.NextPageToken,
-                response => response.Files );
-
-
-
-            var folders = new FileList
-            {
-                Files = new List<File>()
-            };
-
-            // This will retrieve one by one, not blocks
-            foreach ( var result in pageStreamer.Fetch( request ) )
-            {
-                folders.Files.Add( result );
-
-                this._logger.Log( result );
-            }
-            this._logger.Log($"Retrieved [{folders.Files.Count}] folders.");
-
-            return folders;
-        }
-
-        private void DoWalk( string parentPath, string folderId, int folderDepth )
+        private void DoWalk( WalkerCurrentFolder currentFolder, int folderDepth )
         {
             //Console.WriteLine( $"Walk folder [{folderId}]; parentPath [{parentPath}], level [{folderLevel}].");
+
+            this.DoFolderHandler(  currentFolder );
 
             if (folderDepth > 6 )
             {
                 // We've reached the end of the folder depth
-                // Create this folder!
-
-                try
-                {
-                    Directory.CreateDirectory(parentPath);
-                }
-                catch ( PathTooLongException ex )
-                {
-                    Console.WriteLine( ex );
-                    throw;
-                }
                 return;
             }
 
-            var folders = this.GetFoldersIn( folderId );
+            var gDriveFolders = new GoogleDriveFolder( this._service );
+            var gDriveFolderList = gDriveFolders.GetSubFolders( currentFolder.GDriveFile.Id );
 
 
             // The max default amount of files is 100
@@ -126,7 +99,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive
             // Recurse to a deeper level.
             folderDepth++;
 
-            foreach ( var folder in folders.Files )
+            foreach ( var gDriveFolder in gDriveFolderList.Files )
             {
                 //Console.WriteLine("\nFile:");
                 //Console.WriteLine($"Id [{file.Id}].");
@@ -134,40 +107,56 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive
                 //Console.WriteLine($"MimeType [{file.MimeType}].");
                 //Console.WriteLine($"Name [{file.Name}].");
 
-                var path = Path.Combine( parentPath, folder.Name.ReplaceInvalidCharacters() );
+                var subFolder = new WalkerCurrentFolder()
+                {
+                    GDriveFile = gDriveFolder,
+                    LocalFullPath = Path.Combine( currentFolder.LocalFullPath, gDriveFolder.Name.ReplaceInvalidCharacters() )
+                };
                 //_logger.Log($"{parentPath}{Path.DirectorySeparatorChar}{folder.Name}");
-                _logger.Log($"{path}");
+                //_logger.Log($"{path}");
 
                 this.DoWalk(
-                    //$"{parentPath}{Path.DirectorySeparatorChar}{folder.Name}",
-                    path.ToString(),
-                    folder.Id,
+                    subFolder,
                     folderDepth
                 );
             }
 
         }
 
+
+
         public GoogleFolderWalker(DriveService service)
         {
             this._service = service ?? throw new ArgumentNullException(nameof(service));
 
             this._logger = ConsoleLogger.GetInstance();
+
+            this.OnFolder = null;
         }
+
 
         public void Walk()
         {
             //
-            // Do get the RopeMArks folder and append to Export Path
+            // Collect the current, start, folder
             //
+            var gDriveFolder = new GoogleDriveFolder(this._service);
+            var ropeMarksFolder = gDriveFolder.GetFolder(GoogleDriveFileIdConstants.FolderRopeMarks);
 
-
+            var currentFolder = new WalkerCurrentFolder()
+            {
+                GDriveFile = ropeMarksFolder,
+                LocalFullPath = Path.Combine( ApplicationConstants.ExportPath, ropeMarksFolder.Name )
+            };
 
             this.DoWalk(
-                ApplicationConstants.ExportPath, 
-                GoogleDriveFileIdConstants.FolderRopeMarks, 
+                currentFolder,
                 0 
             );
         }
+
+
+        public  delegate void OnFolderDelegate(WalkerCurrentFolder currentFolder);
+        public OnFolderDelegate OnFolder { get; set; }
     }
 }

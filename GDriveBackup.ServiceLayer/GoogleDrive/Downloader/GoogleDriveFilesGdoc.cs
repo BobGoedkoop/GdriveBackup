@@ -1,11 +1,11 @@
-﻿using GDriveBackup.Core.Constants;
+﻿using System;
+using GDriveBackup.Core.Constants;
 using Google.Apis.Drive.v3;
-using System;
 
 // ReSharper disable StringLiteralTypo
 // ReSharper disable IdentifierTypo
 
-namespace GDriveBackup.ServiceLayer.GoogleDrive
+namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
 {
     // Documents and sheets, not images
     public class GoogleDriveFilesGdoc: GoogleDriveFiles

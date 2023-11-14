@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Security.Policy;
 using GDriveBackup.Core.Constants;
 using GDriveBackup.Core.Extensions;
 using GDriveBackup.Crosscutting.Configuration;
@@ -11,9 +10,8 @@ using Google.Apis.Drive.v3;
 // ReSharper disable StringLiteralTypo
 // ReSharper disable IdentifierTypo
 
-namespace GDriveBackup.ServiceLayer.GoogleDrive
+namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
 {
-    // Documents and sheets, not images
     public abstract class GoogleDriveFiles
     {
         private readonly DriveService _service;

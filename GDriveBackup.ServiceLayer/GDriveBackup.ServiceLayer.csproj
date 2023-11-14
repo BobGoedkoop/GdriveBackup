@@ -66,12 +66,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GoogleDrive\GoogleDriveAuthenticate.cs" />
-    <Compile Include="GoogleDrive\GoogleDriveFiles.cs" />
-    <Compile Include="GoogleDrive\GoogleDriveFilesGdoc.cs" />
-    <Compile Include="GoogleDrive\GoogleDriveFilesGsheet.cs" />
-    <Compile Include="GoogleDrive\GoogleDriveService.cs" />
-    <Compile Include="GoogleDrive\GoogleFolderWalker.cs" />
+    <Compile Include="GoogleDrive\Authenticate\GoogleDriveAuthenticate.cs" />
+    <Compile Include="GoogleDrive\Files\GoogleDriveFolders.cs" />
+    <Compile Include="GoogleDrive\Files\GoogleDriveFile.cs" />
+    <Compile Include="GoogleDrive\Downloader\GoogleDriveFiles.cs" />
+    <Compile Include="GoogleDrive\Downloader\GoogleDriveFilesGdoc.cs" />
+    <Compile Include="GoogleDrive\Downloader\GoogleDriveFilesGsheet.cs" />
+    <Compile Include="GoogleDrive\Service\GoogleDriveService.cs" />
+    <Compile Include="GoogleDrive\FolderWalker\GoogleFolderWalker.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -87,5 +89,6 @@
       <Name>GDriveBackup.Crosscutting</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

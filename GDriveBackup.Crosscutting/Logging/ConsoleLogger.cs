@@ -38,6 +38,17 @@ namespace GDriveBackup.Crosscutting.Logging
             Console.WriteLine( text);
         }
 
+        public void Log( Exception ex)
+        {
+            if (!Config.GetInstance().DebugConsole)
+            {
+                return;
+            }
+
+            Console.WriteLine(ex.Message);
+            Console.WriteLine(ex.StackTrace);
+        }
+
         public void Log(Google.Apis.Drive.v3.Data.File file)
         {
             if (!Config.GetInstance().DebugConsole)
@@ -45,7 +56,9 @@ namespace GDriveBackup.Crosscutting.Logging
                 return;
             }
 
-            Console.WriteLine($"File: Name [{file.Name}], MimeType [{file.MimeType}], Id [{file.Id}].");
+            Console.WriteLine( file == null
+                ? $"File: [null]."
+                : $"File: Name [{file.Name}], MimeType [{file.MimeType}], Id [{file.Id}]." );
         }
 
         public void Log( IList<Google.Apis.Drive.v3.Data.File> files )
