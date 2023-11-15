@@ -23,7 +23,7 @@ namespace GDriveBackup.ApplicationLayer.Processor
             {
                 Config.GetInstance().Reset();
 
-                this._logger.Log($"Config file [{ApplicationConstants.ConfigPath}] has been reset.");
+                this._logger.Info($"Config file [{ApplicationConstants.ConfigPath}] has been reset.");
             }
 
             if (cmdLineModel.ConfigResetLastRunDate)
@@ -32,7 +32,7 @@ namespace GDriveBackup.ApplicationLayer.Processor
                 config.LastRunDate = Config.DefaultLastRunDate;
                 config.Persist();
 
-                this._logger.Log($"Config file [{ApplicationConstants.ConfigPath}] has had the LastRunDate reset.");
+                this._logger.Info($"Config file [{ApplicationConstants.ConfigPath}] has had the LastRunDate reset.");
             }
 
             if (cmdLineModel.BackupAll)

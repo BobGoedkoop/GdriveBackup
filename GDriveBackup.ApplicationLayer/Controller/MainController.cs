@@ -13,7 +13,7 @@ namespace GDriveBackup.ApplicationLayer.Controller
         public void Execute(string[] args)
         {
             var logger = ConsoleLogger.GetInstance();
-            logger.Log($"{ApplicationConstants.ApplicationName} {ApplicationConstants.ApplicationVersion}");
+            logger.Info($"{ApplicationConstants.ApplicationName} {ApplicationConstants.ApplicationVersion}");
 
 
             var cmdLineProcessor = new CommandLineProcessor();
@@ -21,7 +21,7 @@ namespace GDriveBackup.ApplicationLayer.Controller
             cmdLineProcessor.Process(cmdLineModel);
 
 
-            logger.Log($"\n\n{ApplicationConstants.ApplicationPressAnyKey}\n\n");
+            logger.Info($"\n\n{ApplicationConstants.ApplicationPressAnyKey}\n\n");
             Console.ReadKey();
         }
     }

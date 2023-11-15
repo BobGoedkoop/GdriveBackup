@@ -14,7 +14,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Authenticate
         public GoogleCredential Authenticate()
         {
             var logger = ConsoleLogger.GetInstance();
-            logger.Log( $"\n>> Authenticate.");
+            logger.Debug( $"\n>> Authenticate.");
 
             string[] scopes = new string[]
             {
@@ -25,7 +25,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Authenticate
                 .FromFile( ApplicationConstants.JsonCredentialsPath )
                 .CreateScoped(scopes);
 
-            logger.Log($"<< Authenticate.");
+            logger.Debug($"<< Authenticate.");
             return credential;
         }
     }

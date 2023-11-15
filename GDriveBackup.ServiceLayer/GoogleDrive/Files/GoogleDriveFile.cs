@@ -11,8 +11,6 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
 {
     public class GoogleDriveFile
     {
-
-
         protected readonly DriveService Service;
         protected readonly ConsoleLogger Logger;
 
