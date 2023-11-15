@@ -12,10 +12,6 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.FolderWalker
 {
     /// <summary>
     /// </summary>
-    /// List all files on Google Drive
-    /// <see cref=" https://www.daimto.com/list-all-files-on-google-drive/"/>
-    /// List files (a folder is also a "file") in a folder.
-    /// <see cref="https://stackoverflow.com/questions/60177954/google-drive-api-v3-is-there-anyway-to-list-of-files-and-folders-from-a-root-fo"/>
     public class GoogleDriveFolderWalker
     {
         private readonly DriveService _service;
@@ -62,8 +58,12 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.FolderWalker
         {
             this._logger.Debug( $"Walk Google Drive folder [{currentFolder.GDriveFile.Name}]; depth [{folderDepth}].");
 
-            this.DoFolderHandler(  currentFolder );
+            //if (folderDepth > 0)
+            //{
+            //    return;
+            //}
 
+            this.DoFolderHandler(  currentFolder );
 
             var googleDriveFolder = new GoogleDriveFolder( this._service );
             var gDriveFolderList = googleDriveFolder.GetSubFolders( currentFolder.GDriveFile.Id );
@@ -77,7 +77,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.FolderWalker
                 var subFolder = new WalkerCurrentFolder()
                 {
                     GDriveFile = gDriveFolder,
-                    LocalFullPath = Path.Combine( currentFolder.LocalFullPath, gDriveFolder.Name.ReplaceInvalidCharacters() )
+                    LocalFullPath = Path.Combine( currentFolder.LocalFullPath, gDriveFolder.Name.ReplaceInvalidPathCharacters() )
                 };
 
                 this.DoWalk(

@@ -24,6 +24,5 @@ namespace GDriveBackup.Core.Extensions
 
             return parts;
         }
-
     }
 }

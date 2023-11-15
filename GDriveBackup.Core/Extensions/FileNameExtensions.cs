@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -47,5 +48,22 @@ namespace GDriveBackup.Core.Extensions
                 return "_";
             return changed ? sb.ToString() : srcText;
         }
+
+        public static string ReplaceInvalidFileNameCharacters(this string fileName, string replacement = "_")
+        {
+            return string.Join( 
+                replacement,
+                fileName.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries)
+            );
+        }
+        public static string ReplaceSpaceCharacters(this string line, string replacement = "_")
+        {
+            return string.Join(
+                replacement,
+                line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+            );
+        }
+
+
     }
 }

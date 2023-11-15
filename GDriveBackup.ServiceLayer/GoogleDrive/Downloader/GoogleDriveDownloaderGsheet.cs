@@ -1,7 +1,6 @@
 ﻿using System;
 using GDriveBackup.Core.Constants;
 using Google.Apis.Drive.v3;
-using File = Google.Apis.Drive.v3.Data.File;
 
 // ReSharper disable StringLiteralTypo
 // ReSharper disable IdentifierTypo
@@ -15,7 +14,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
         {
         }
 
-        public override void DownloadFile(string localPath, File file)
+        public override void DownloadFile(string localPath, Google.Apis.Drive.v3.Data.File file)
         {
             //base.DoDownloadFile(localPath, FileExtensionConstants.Pdf, MimeTypeConstants.ApplicationPdf, file);
             base.Logger.Warn( $"No download implementation for GSheet [{file.Name}]." );

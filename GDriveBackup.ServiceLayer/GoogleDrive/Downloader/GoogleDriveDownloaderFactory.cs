@@ -49,7 +49,8 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
             }
             else
             {
-                this._logger.Warn( $"No downloader available for file of type [{file.MimeType}] (Id [{file.Id}], Name [{file.Name}])." );
+                this._logger.Warn($"No downloader available for file of type [{file.MimeType}] (Id [{file.Id}], Name [{file.Name}]).");
+                downloader = new GoogleDriveDownloaderUnsupportedFile(service);
             }
             return downloader;
         }

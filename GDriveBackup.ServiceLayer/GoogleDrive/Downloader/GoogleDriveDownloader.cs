@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.IO;
 using GDriveBackup.Core.Constants;
 using GDriveBackup.Core.Extensions;
@@ -15,6 +16,25 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
     public abstract class GoogleDriveDownloader
     {
         private readonly DriveService _service;
+
+
+        private void DoFailedHandler(string localPath, string localExt, string localMimeType, Google.Apis.Drive.v3.Data.File file)
+        {
+            if (this.OnFailed == null)
+            {
+                this.Logger.Info($"Google Drive downloader is not assigned a client OnFailed handler.");
+                return;
+            }
+
+            try
+            {
+                this.OnFailed( localPath, localExt, localMimeType, file );
+            }
+            catch (Exception ex)
+            {
+                this.Logger.Error($"OnFailed of client caused an exception.", ex);
+            }
+        }
         
         
         protected readonly ConsoleLogger Logger;
@@ -29,23 +49,35 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
 
         protected async void DoDownloadFile( string localPath, string localExt, string localMimeType, Google.Apis.Drive.v3.Data.File file )
         {
-            var validFileName = file.Name.ToValidFileName();
-            var dstFilePath = Path.Combine(localPath, $"{validFileName}{localExt}"); 
-
-            this.Logger.Info($"Download [{file.Name}] to [{dstFilePath}].");
-
-
-            var getRequest = this._service.Files.Export(
-                file.Id,
-                /*Export converts to:*/ localMimeType 
+            var dstFullPath = Path.Combine(
+                localPath,
+                Path.ChangeExtension(
+                    file.Name.ToValidFileName().ReplaceSpaceCharacters(),
+                    localExt
+                )
             );
+            this.Logger.Info($"Download [{file.Name}] to [{dstFullPath}].");
 
-            using (var filestream = new FileStream(dstFilePath, FileMode.Create, FileAccess.Write))
+            try
             {
-                // This will overwrite an existing file by the same name.
-                await getRequest.DownloadAsync(filestream);
-            }
 
+                var getRequest = this._service.Files.Export(
+                    file.Id,
+                    /*Export converts to:*/ localMimeType
+                );
+
+                using (var filestream = new FileStream(dstFullPath, FileMode.Create, FileAccess.Write))
+                {
+                    // This will overwrite an existing file by the same name.
+                    await getRequest.DownloadAsync(filestream);
+                }
+
+            }
+            catch ( Exception ex )
+            {
+                this.Logger.Error( $"Downloading [{file.Name}] to [{dstFullPath}] failed.", ex );
+                this.DoFailedHandler(localPath, localExt, localMimeType, file);
+            }
         }
 
         public abstract void DownloadFile( string localPath, Google.Apis.Drive.v3.Data.File file );
@@ -88,7 +120,6 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
 
             var results = request.ExecuteAsync().Result;
 
-            this.Logger.Debug("\n");
             this.Logger.Debug(results.Files);
 
             return results.Files;
@@ -121,5 +152,9 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
         /// </summary>
         /// <param name="since"></param>
         public abstract void DownloadAll( DateTime since );
+
+
+        public delegate void OnFailedDelegate(string localPath, string localExt, string localMimeType, Google.Apis.Drive.v3.Data.File file);
+        public OnFailedDelegate OnFailed { get; set; }
     }
 }

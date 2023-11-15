@@ -78,6 +78,8 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
         {
             var qry = $"trashed = false " // Never return trashed files
                       + "and "
+                      + $"mimeType != '{MimeTypeConstants.Gfolder}' " // Retrieve all files except folders
+                      + "and "
                       + $"'{parentGDriveFileId}' in parents" // Retrieve files in 'parentGDriveFileId'
                 ;
 

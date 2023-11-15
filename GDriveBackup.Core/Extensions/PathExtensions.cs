@@ -9,11 +9,11 @@ namespace GDriveBackup.Core.Extensions
 {
     public static class PathExtensions
     {
-        public static string ReplaceInvalidCharacters( this string path, string replaceWith = "_" )
+        public static string ReplaceInvalidPathCharacters( this string path, string replaceWith = "_" )
         {
             return string.Join( 
                 replaceWith, 
-                path.Split( Path.GetInvalidFileNameChars() ) 
+                path.Split( Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries) 
             );
         }
     }
