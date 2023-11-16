@@ -1,0 +1,11 @@
+{
+  "Version": "v1.0",
+  "Application": {
+    "Name": "RM Google Drive Backup",
+    "Version": "v0.9"
+  },
+  "LastRunDate": "2023-11-15T21:13:10.0302476Z",
+  "Debug": {
+    "Console": true
+  }
+}

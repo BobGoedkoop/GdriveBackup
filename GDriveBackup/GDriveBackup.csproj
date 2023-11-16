@@ -74,6 +74,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="Configuration\GDriveBackup.json" />
+    <None Include="Configuration\ServiceAccount_pdf-downloader_credentials.json" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup />
