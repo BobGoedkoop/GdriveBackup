@@ -80,7 +80,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
                       + "and "
                       + $"mimeType != '{MimeTypeConstants.Gfolder}' " // Retrieve all files except folders
                       + "and "
-                      + $"'{parentGDriveFileId}' in parents" // Retrieve files in 'parentGDriveFileId'
+                      + $"'{parentGDriveFileId}' in parents " // Retrieve files in 'parentGDriveFileId'
                 ;
 
             if ( since != Config.DefaultLastRunDate )

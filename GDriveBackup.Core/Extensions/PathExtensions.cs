@@ -9,6 +9,13 @@ namespace GDriveBackup.Core.Extensions
 {
     public static class PathExtensions
     {
+        public static string ToValidPath( this string path )
+        {
+            return path
+                .Trim() // Strip leading and trailing whitespace
+                .ReplaceInvalidPathCharacters();
+        }
+
         public static string ReplaceInvalidPathCharacters( this string path, string replaceWith = "_" )
         {
             return string.Join( 

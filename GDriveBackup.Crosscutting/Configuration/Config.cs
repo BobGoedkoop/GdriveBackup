@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using GDriveBackup.Core.Constants;
 using Newtonsoft.Json.Linq;
 
@@ -10,19 +11,20 @@ namespace GDriveBackup.Crosscutting.Configuration
 {
     public class Config
     {
+        private readonly ApplicationSettings _settings;
         private JObject _db;
 
-        private static JObject Default()
+        private JObject Default()
         {
             return new JObject
             {
-                { "Version", ApplicationConstants.ConfigVersion },
+                { "Version", this._settings.ConfigVersion },
 
                 {
                     "Application", new JObject
                     {
-                        { "Name" , $"{ApplicationConstants.ApplicationName}" },
-                        { "Version" , $"{ApplicationConstants.ApplicationVersion}" },
+                        { "Name" , $"{this._settings.ApplicationName}" },
+                        { "Version" , $"{this._settings.ApplicationVersion}" },
 
                     }
                 },
@@ -43,14 +45,14 @@ namespace GDriveBackup.Crosscutting.Configuration
             try
             {
                 this._db = JObject.Parse(
-                    File.ReadAllText($"{ApplicationConstants.ConfigPath}")
+                    File.ReadAllText($"{this._settings.ConfigPath}")
                 );
 
             }
             catch ( FileNotFoundException )
             {
                 File
-                    .Create( $"{ApplicationConstants.ConfigPath}" )
+                    .Create( $"{this._settings.ConfigPath}" )
                     .Close();
 
                 this._db = Default();
@@ -67,6 +69,7 @@ namespace GDriveBackup.Crosscutting.Configuration
 
         protected Config()
         {
+            this._settings = ApplicationSettings.GetInstance();
             this.Read();
         }
 
@@ -86,7 +89,7 @@ namespace GDriveBackup.Crosscutting.Configuration
 
         public bool Persist()
         {
-            File.WriteAllText( $"{ApplicationConstants.ConfigPath}", this._db.ToString() );
+            File.WriteAllText( $"{this._settings.ConfigPath}", this._db.ToString() );
             return true;
         }
 

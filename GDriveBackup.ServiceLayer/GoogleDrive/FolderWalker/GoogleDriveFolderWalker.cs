@@ -2,6 +2,7 @@
 using System.IO;
 using GDriveBackup.Core.Constants;
 using GDriveBackup.Core.Extensions;
+using GDriveBackup.Crosscutting.Configuration;
 using GDriveBackup.Crosscutting.Logging;
 using GDriveBackup.ServiceLayer.GoogleDrive.Files;
 using Google.Apis.Drive.v3;
@@ -77,7 +78,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.FolderWalker
                 var subFolder = new WalkerCurrentFolder()
                 {
                     GDriveFile = gDriveFolder,
-                    LocalFullPath = Path.Combine( currentFolder.LocalFullPath, gDriveFolder.Name.ReplaceInvalidPathCharacters() )
+                    LocalFullPath = Path.Combine( currentFolder.LocalFullPath, gDriveFolder.Name.ToValidPath() )
                 };
 
                 this.DoWalk(
@@ -116,7 +117,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.FolderWalker
             var currentFolder = new WalkerCurrentFolder()
             {
                 GDriveFile = ropeMarksFolder,
-                LocalFullPath = Path.Combine( ApplicationConstants.ExportPath, ropeMarksFolder.Name )
+                LocalFullPath = Path.Combine(ApplicationSettings.GetInstance().ExportPath, ropeMarksFolder.Name )
             };
 
             // Start walking!

@@ -1,4 +1,5 @@
 ﻿using GDriveBackup.Core.Constants;
+using GDriveBackup.Crosscutting.Configuration;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
@@ -16,7 +17,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Service
             var service = new DriveService(new BaseClientService.Initializer()
             {
                 HttpClientInitializer = credential,
-                ApplicationName = $"{ApplicationConstants.ApplicationName} {ApplicationConstants.ApplicationVersion}",
+                ApplicationName = $"{ApplicationSettings.GetInstance().ApplicationName} {ApplicationSettings.GetInstance().ApplicationVersion}",
             });
 
             return service;

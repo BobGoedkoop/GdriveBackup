@@ -140,7 +140,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
             // Do Download
             foreach (var file in files)
             {
-                this.DownloadFile(ApplicationConstants.ExportPath, file);
+                this.DownloadFile(ApplicationSettings.GetInstance().ExportPath, file);
             }
 
             this.Logger.Info($"Downloaded [{files.Count}] [{mimeType}] files.\n");
