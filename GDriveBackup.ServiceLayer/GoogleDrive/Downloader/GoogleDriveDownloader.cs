@@ -6,6 +6,7 @@ using GDriveBackup.Core.Constants;
 using GDriveBackup.Core.Extensions;
 using GDriveBackup.Crosscutting.Configuration;
 using GDriveBackup.Crosscutting.Logging;
+using GDriveBackup.DataLayer.Repository;
 using Google.Apis.Drive.v3;
 
 // ReSharper disable StringLiteralTypo
@@ -93,7 +94,8 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
                         + $"mimeType = '{mimeType}' " // Only return specific files: gdoc, sheet, ...
                 ;
 
-            if (lastRunDate != Config.DefaultLastRunDate)
+            var runDateRepo = new RunDateRepository();
+            if (lastRunDate != runDateRepo.DefaultLastRunDate)
             {
                 query += "and "
                       + $"modifiedTime > '{lastRunDate.ToIso8601()}' " // Default time zone is UTC

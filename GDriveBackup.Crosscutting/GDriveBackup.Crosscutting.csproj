@@ -73,11 +73,9 @@
   <ItemGroup>
     <Compile Include="Configuration\ApplicationSettings.cs" />
     <Compile Include="Configuration\AppSettings.cs" />
-    <Compile Include="Configuration\Config.cs" />
     <Compile Include="Configuration\Exception\ConfigurationException.cs" />
     <Compile Include="Configuration\Exception\ConfigurationInvalidOrMissingValueException.cs" />
     <Compile Include="Logging\ApplicationLogger.cs" />
-    <Compile Include="Logging\ConsoleLogger.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

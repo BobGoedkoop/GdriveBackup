@@ -77,7 +77,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="App.config" />
-    <None Include="Configuration\GDriveBackup.json" />
+    <None Include="LocalStore\db.json" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup />

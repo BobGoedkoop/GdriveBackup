@@ -1,6 +1,6 @@
 ﻿using GDriveBackup.BusinessLayer.Domain.Backup;
 using GDriveBackup.BusinessLayer.Domain.CommandLineAdapter.Model;
-using GDriveBackup.Crosscutting.Configuration;
+using GDriveBackup.BusinessLayer.Domain.Run;
 using GDriveBackup.Crosscutting.Logging;
 
 namespace GDriveBackup.ApplicationLayer.Processor
@@ -18,30 +18,21 @@ namespace GDriveBackup.ApplicationLayer.Processor
 
         public void Process(CommandLineModel cmdLineModel)
         {
-            if (cmdLineModel.ConfigReset)
-            {
-                Config.GetInstance().Reset();
-
-                this._logger.Info($"Config file [{ApplicationSettings.GetInstance().ConfigPath}] has been reset.");
-            }
+            var runDateDomain = new RunDateDomain();
 
             if (cmdLineModel.ConfigResetLastRunDate)
             {
-                var config = Config.GetInstance();
-                config.LastRunDate = Config.DefaultLastRunDate;
-                config.Persist();
-
-                this._logger.Info($"Config file [{ApplicationSettings.GetInstance().ConfigPath}] has had the LastRunDate reset.");
+                runDateDomain.Reset();
             }
 
             if (cmdLineModel.BackupAll)
             {
-                var backup = new BackupDomain( Config.DefaultLastRunDate );
+                var backup = new BackupDomain(runDateDomain.DefaultLastRunDate );
                 backup.Start();
             }
             else if (cmdLineModel.BackupChanges)
             {
-                var backup = new BackupDomain(Config.GetInstance().LastRunDate );
+                var backup = new BackupDomain(runDateDomain.LastRunDate );
                 backup.Start();
             }
         }

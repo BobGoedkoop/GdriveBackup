@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using GDriveBackup.Core.Constants;
 using GDriveBackup.Core.Extensions;
 using GDriveBackup.Crosscutting.Configuration;
+using GDriveBackup.DataLayer.Repository;
 using Google.Apis.Drive.v3;
 using Google.Apis.Drive.v3.Data;
 using Google.Apis.Requests;
@@ -83,7 +84,8 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
                       + $"'{parentGDriveFileId}' in parents " // Retrieve files in 'parentGDriveFileId'
                 ;
 
-            if ( since != Config.DefaultLastRunDate )
+            var runDateRepo = new RunDateRepository();
+            if ( since != runDateRepo.DefaultLastRunDate )
             {
                 qry += "and "
                        + $"modifiedTime > '{since.ToIso8601()}' " // Default time zone is UTC
@@ -127,11 +129,6 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
             return files;
         }
 
-
-        public FileList GetFilesInFolder( string parentGDriveFileId )
-        {
-            return DoGetFilesInFolder(parentGDriveFileId, Config.DefaultLastRunDate);
-        }
 
         public FileList GetFilesInFolder( string parentGDriveFileId, DateTime since )
         {

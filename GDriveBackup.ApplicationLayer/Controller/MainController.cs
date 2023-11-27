@@ -16,6 +16,7 @@ namespace GDriveBackup.ApplicationLayer.Controller
             var settings = ApplicationSettings.GetInstance();
 
             var logger = ApplicationLogger.GetInstance();
+            logger.Info($"\n\n\n\n\n========== ========= ========== ==========");
             logger.Info($"{settings.ApplicationName} {settings.ApplicationVersion}");
 
 
@@ -24,7 +25,7 @@ namespace GDriveBackup.ApplicationLayer.Controller
             cmdLineProcessor.Process(cmdLineModel);
 
 
-            ConsoleLogger.GetInstance().Info($"{ApplicationConstants.ApplicationPressAnyKey}");
+            Console.WriteLine($"{ApplicationConstants.ApplicationPressAnyKey}");
             Console.ReadKey();
         }
     }

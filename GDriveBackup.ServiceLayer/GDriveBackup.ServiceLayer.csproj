@@ -92,6 +92,10 @@
       <Project>{f1337df1-11d8-4ad5-92e9-e6c7b17a06c0}</Project>
       <Name>GDriveBackup.Crosscutting</Name>
     </ProjectReference>
+    <ProjectReference Include="..\GDriveBackup.DataLayer\GDriveBackup.DataLayer.csproj">
+      <Project>{f9695aad-5e05-4e45-9354-095a31447eb2}</Project>
+      <Name>GDriveBackup.DataLayer</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
