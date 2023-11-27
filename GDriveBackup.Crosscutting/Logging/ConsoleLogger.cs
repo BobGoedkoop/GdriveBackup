@@ -4,6 +4,7 @@ using GDriveBackup.Crosscutting.Configuration;
 
 namespace GDriveBackup.Crosscutting.Logging
 {
+    [Obsolete( "Please use the (I)ApplicationLogger; the adapter to NLog.")]
     public class ConsoleLogger
     {
 

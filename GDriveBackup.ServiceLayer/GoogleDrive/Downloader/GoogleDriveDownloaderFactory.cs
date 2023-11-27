@@ -9,7 +9,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
 {
     public class GoogleDriveDownloaderFactory
     {
-        private readonly ConsoleLogger _logger;
+        private readonly IApplicationLogger _logger;
 
         #region Singleton
 
@@ -17,7 +17,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
 
         protected GoogleDriveDownloaderFactory()
         {
-            this._logger = ConsoleLogger.GetInstance();
+            this._logger = ApplicationLogger.GetInstance();
         }
 
         public static GoogleDriveDownloaderFactory GetInstance()

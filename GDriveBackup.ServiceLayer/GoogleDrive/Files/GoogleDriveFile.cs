@@ -12,14 +12,14 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
     public class GoogleDriveFile
     {
         protected readonly DriveService Service;
-        protected readonly ConsoleLogger Logger;
+        protected readonly IApplicationLogger Logger;
 
 
         public GoogleDriveFile( DriveService service )
         {
             this.Service = service ?? throw new ArgumentNullException( nameof( service ) );
 
-            this.Logger = ConsoleLogger.GetInstance();
+            this.Logger = ApplicationLogger.GetInstance();
         }
 
 

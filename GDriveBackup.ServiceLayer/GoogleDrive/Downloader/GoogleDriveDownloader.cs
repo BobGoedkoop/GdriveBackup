@@ -37,14 +37,14 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
         }
         
         
-        protected readonly ConsoleLogger Logger;
+        protected readonly IApplicationLogger Logger;
 
         
         protected GoogleDriveDownloader(DriveService service)
         {
             this._service = service ?? throw new ArgumentNullException(nameof(service));
 
-            this.Logger = ConsoleLogger.GetInstance();
+            this.Logger = ApplicationLogger.GetInstance();
         }
 
         protected async void DoDownloadFile( string localPath, string localExt, string localMimeType, Google.Apis.Drive.v3.Data.File file )
@@ -100,7 +100,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
                 ;
             }
 
-            this.Logger.Info($"Query [{query}].");
+            this.Logger.Debug($"Query [{query}].");
 
             return query;
         }

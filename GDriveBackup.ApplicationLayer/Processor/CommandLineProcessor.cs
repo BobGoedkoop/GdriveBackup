@@ -7,12 +7,12 @@ namespace GDriveBackup.ApplicationLayer.Processor
 {
     public class CommandLineProcessor
     {
-        private readonly ConsoleLogger _logger;
+        private readonly IApplicationLogger _logger;
 
 
         public CommandLineProcessor()
         {
-            this._logger = ConsoleLogger.GetInstance();
+            this._logger = ApplicationLogger.GetInstance();
         }
 
 
@@ -36,12 +36,12 @@ namespace GDriveBackup.ApplicationLayer.Processor
 
             if (cmdLineModel.BackupAll)
             {
-                var backup = new BackupDomain_v2( Config.DefaultLastRunDate );
+                var backup = new BackupDomain( Config.DefaultLastRunDate );
                 backup.Start();
             }
             else if (cmdLineModel.BackupChanges)
             {
-                var backup = new BackupDomain_v2(Config.GetInstance().LastRunDate );
+                var backup = new BackupDomain(Config.GetInstance().LastRunDate );
                 backup.Start();
             }
         }

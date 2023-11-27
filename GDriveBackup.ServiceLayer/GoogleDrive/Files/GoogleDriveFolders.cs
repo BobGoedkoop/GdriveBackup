@@ -42,7 +42,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
                         //+ "'root' in parents" // Retrieve folders in 'root'
                         + $"'{parentGDriveFileId}' in parents" // Retrieve folders in 'parentGDriveFileId'
                 ;
-            base.Logger.Info( $"Request Q [{request.Q}]." );
+            base.Logger.Debug( $"Request Q [{request.Q}]." );
 
             request.PageSize = 100; // not picked up
 
@@ -68,7 +68,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
                 folders.Files.Add( result );
             }
 
-            base.Logger.Info( $"Retrieved [{folders.Files.Count}] folders." );
+            base.Logger.Debug( $"Retrieved [{folders.Files.Count}] folders." );
 
             return folders;
         }
@@ -90,7 +90,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
                     ;
             }
 
-            base.Logger.Info( $"Query [{qry}]." );
+            base.Logger.Debug( $"Query [{qry}]." );
             return qry;
         }
 

@@ -69,7 +69,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Domain\Backup\BackupDomain_v2.cs" />
     <Compile Include="Domain\Backup\BackupDomain.cs" />
     <Compile Include="Domain\CommandLineAdapter\CommandLineOptions.cs" />
     <Compile Include="Domain\CommandLineAdapter\CommandLineParser.cs" />

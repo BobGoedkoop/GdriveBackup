@@ -16,7 +16,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.FolderWalker
     public class GoogleDriveFolderWalker
     {
         private readonly DriveService _service;
-        private readonly ConsoleLogger _logger;
+        private readonly IApplicationLogger _logger;
 
         private void DoFolderHandler(  WalkerCurrentFolder currentFolder )
         {
@@ -57,7 +57,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.FolderWalker
 
         private void DoWalk( WalkerCurrentFolder currentFolder, int folderDepth )
         {
-            this._logger.Debug( $"Walk Google Drive folder [{currentFolder.GDriveFile.Name}]; depth [{folderDepth}].");
+            this._logger.Info( $"Walk Google Drive folder [{currentFolder.GDriveFile.Name}]; depth [{folderDepth}].");
 
             //if (folderDepth > 0)
             //{
@@ -95,7 +95,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.FolderWalker
         {
             this._service = service ?? throw new ArgumentNullException(nameof(service));
 
-            this._logger = ConsoleLogger.GetInstance();
+            this._logger = ApplicationLogger.GetInstance();
 
             this.OnFolder = null;
             this.OnFinished = null;
