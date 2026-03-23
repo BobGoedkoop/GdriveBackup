@@ -274,7 +274,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
                 ;
             }
 
-            this.Logger.Debug($"Query [{query}].");
+            this.Logger.Trace($"Query [{query}].");
 
             return query;
         }
@@ -297,7 +297,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
 
             var results = request.ExecuteAsync().Result;
 
-            this.Logger.Debug(results.Files);
+            this.Logger.Trace($"List query returned [{results?.Files?.Count ?? 0}] files.");
 
             return results.Files;
         }

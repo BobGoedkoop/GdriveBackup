@@ -24,13 +24,14 @@ namespace GDriveBackup.Crosscutting.Configuration
             public const string JsonCredentialsPath = "JsonCredentialsPath";
             public const string LocalStorePath = "LocalStorePath";
             public const string MaxConcurrentDownloads = "MaxConcurrentDownloads";
-            public const string EnableLargeGdocAutoSplit = "EnableLargeGdocAutoSplit";
             public const string LargeGdocSplitMode = "LargeGdocSplitMode";
             public const string LargeGdocMaxCharsPerPart = "LargeGdocMaxCharsPerPart";
             public const string KeepTemporarySplitDocs = "KeepTemporarySplitDocs";
             public const string DriveApiTransientRetryCount = "DriveApiTransientRetryCount";
             public const string DriveApiRetryBaseDelayMs = "DriveApiRetryBaseDelayMs";
             public const string DriveApiRequestTimeoutSeconds = "DriveApiRequestTimeoutSeconds";
+            public const string EnableConsoleHeartbeat = "EnableConsoleHeartbeat";
+            public const string ConsoleHeartbeatIntervalSeconds = "ConsoleHeartbeatIntervalSeconds";
         }
 
 
@@ -155,24 +156,6 @@ namespace GDriveBackup.Crosscutting.Configuration
         }
 
         /// <summary>
-        /// Enables automated handling for oversized Google Docs.
-        /// Current implementation generates split-plan artifacts only.
-        /// </summary>
-        public bool EnableLargeGdocAutoSplit
-        {
-            get
-            {
-                var value = GetAppSetting(AppSettingsKey.EnableLargeGdocAutoSplit, false);
-                if (string.IsNullOrWhiteSpace(value))
-                {
-                    return false;
-                }
-
-                return bool.TryParse(value.Trim(), out var parsedValue) && parsedValue;
-            }
-        }
-
-        /// <summary>
         /// Strategy hint for future split processor implementations.
         /// </summary>
         public string LargeGdocSplitMode
@@ -284,6 +267,46 @@ namespace GDriveBackup.Crosscutting.Configuration
             {
                 const int fallbackValue = 600;
                 var value = GetAppSetting(AppSettingsKey.DriveApiRequestTimeoutSeconds, false);
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    return fallbackValue;
+                }
+
+                if (!int.TryParse(value.Trim(), out var parsedValue))
+                {
+                    return fallbackValue;
+                }
+
+                return parsedValue > 0 ? parsedValue : fallbackValue;
+            }
+        }
+
+        /// <summary>
+        /// Show a live progress heartbeat in console while backup is running.
+        /// </summary>
+        public bool EnableConsoleHeartbeat
+        {
+            get
+            {
+                var value = GetAppSetting(AppSettingsKey.EnableConsoleHeartbeat, false);
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    return true;
+                }
+
+                return bool.TryParse(value.Trim(), out var parsedValue) && parsedValue;
+            }
+        }
+
+        /// <summary>
+        /// Interval (seconds) for console heartbeat refresh.
+        /// </summary>
+        public int ConsoleHeartbeatIntervalSeconds
+        {
+            get
+            {
+                const int fallbackValue = 3;
+                var value = GetAppSetting(AppSettingsKey.ConsoleHeartbeatIntervalSeconds, false);
                 if (string.IsNullOrWhiteSpace(value))
                 {
                     return fallbackValue;

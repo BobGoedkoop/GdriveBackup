@@ -79,7 +79,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
         {
             var file = base.GetFile( gDriveFileId );
 
-            base.Logger.Debug( file );
+            base.Logger.Trace($"File: Name [{file?.Name}], MimeType [{file?.MimeType}], Id [{file?.Id}].");
 
             return !base.IsFolder( file ) ? null : file;
         }
@@ -97,7 +97,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
                             + "and "
                             + $"'{parentGDriveFileId}' in parents" // Retrieve folders in 'parentGDriveFileId'
                     ;
-                base.Logger.Debug( $"Request Q [{request.Q}]." );
+                base.Logger.Trace( $"Request Q [{request.Q}]." );
 
                 // Larger pages reduce API round trips on large folder trees.
                 request.PageSize = 1000;
@@ -117,7 +117,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
 
                 foreach ( var result in pageStreamer.Fetch( request ) )
                 {
-                    base.Logger.Debug(result);
+                    base.Logger.Trace($"File: Name [{result?.Name}], MimeType [{result?.MimeType}], Id [{result?.Id}].");
                     folders.Files.Add( result );
                 }
 
@@ -144,7 +144,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
                     ;
             }
 
-            base.Logger.Debug( $"Query [{qry}]." );
+            base.Logger.Trace( $"Query [{qry}]." );
             return qry;
         }
 
@@ -172,7 +172,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
 
                 foreach ( var result in pageStreamer.Fetch( request ) )
                 {
-                    base.Logger.Debug(result);
+                    base.Logger.Trace($"File: Name [{result?.Name}], MimeType [{result?.MimeType}], Id [{result?.Id}].");
                     files.Files.Add( result );
                 }
 

@@ -14,6 +14,7 @@ using GDriveBackup.ServiceLayer.GoogleDrive.Downloader;
 using GDriveBackup.ServiceLayer.GoogleDrive.Files;
 using GDriveBackup.ServiceLayer.GoogleDrive.FolderWalker;
 using GDriveBackup.ServiceLayer.GoogleDrive.Service;
+using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Newtonsoft.Json;
 
@@ -29,6 +30,7 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
         public Google.Apis.Drive.v3.Data.File GDriveFile { get; set; } = null;
         public bool IsRetryable { get; set; } = true;
         public string FailureReason { get; set; } = string.Empty;
+        public bool ResolvedByAutoSplit { get; set; } = false;
     }
 
 
@@ -86,7 +88,14 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
         private long _nonRetryableFailures;
         private string _failedExportsReportPath;
         private string _largeGdocSplitPlanPath;
+        private string _largeGdocSplitExecutionPath;
         private long _largeGdocSplitCandidates;
+        private long _largeGdocAutoSplitAttempted;
+        private long _largeGdocAutoSplitSucceeded;
+        private long _largeGdocAutoSplitFailed;
+        private bool _largeGdocAutoSplitDryRun;
+        private readonly string _largeGdocAutoSplitFileId;
+        private readonly BackupConsoleHeartbeat _consoleHeartbeat;
 
 
         #region Private section
@@ -274,6 +283,70 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
             }
         }
 
+        private async Task ExecuteLargeGdocAutoSplitAsync(DriveService service, GoogleCredential credential)
+        {
+            var settings = ApplicationSettings.GetInstance();
+            this._largeGdocAutoSplitDryRun = false;
+
+            var candidates = this._failedDownloadList
+                .Where(f => !f.ResolvedByAutoSplit
+                            && GoogleDriveDownloaderGdocForLargeFiles.IsOversizedGdocExportFailure(
+                                f.GDriveFile,
+                                f.LocelMimeType,
+                                f.IsRetryable,
+                                f.FailureReason))
+                .Select(f => new GoogleDriveLargeGdocAutoSplitter.LargeGdocSplitCandidate
+                {
+                    SourceFile = f.GDriveFile,
+                    LocalPath = f.LocalPath,
+                    FailureReason = f.FailureReason,
+                    AttemptedExportMimeType = f.LocelMimeType
+                })
+                .GroupBy(c => c.SourceFile.Id)
+                .Select(group => group.Last())
+                .ToList();
+
+            if (!string.IsNullOrWhiteSpace(this._largeGdocAutoSplitFileId))
+            {
+                candidates = candidates
+                    .Where(c => string.Equals(c.SourceFile.Id, this._largeGdocAutoSplitFileId, StringComparison.Ordinal))
+                    .ToList();
+
+                this._logger.Warn(
+                    $"RunId [{this._runId}] large GDoc auto-split file filter active: FileId [{this._largeGdocAutoSplitFileId}], CandidatesAfterFilter [{candidates.Count}].");
+            }
+
+            if (!candidates.Any())
+            {
+                this._logger.Info($"RunId [{this._runId}] no oversized GDoc candidates for auto-split execution.");
+                return;
+            }
+
+            this._logger.Warn(
+                $"RunId [{this._runId}] starting large GDoc auto-split execution for [{candidates.Count}] candidates.");
+
+            var splitter = new GoogleDriveLargeGdocAutoSplitter(service, credential, this._logger);
+            var result = await splitter.ExecuteAsync(candidates, this._runId).ConfigureAwait(false);
+
+            this._largeGdocSplitExecutionPath = result.ReportPath ?? string.Empty;
+            this._largeGdocAutoSplitAttempted = result.Attempted;
+            this._largeGdocAutoSplitSucceeded = result.Succeeded;
+            this._largeGdocAutoSplitFailed = result.Failed;
+            this._largeGdocAutoSplitDryRun = result.DryRun;
+
+            if (result.ResolvedSourceFileIds != null && result.ResolvedSourceFileIds.Count > 0)
+            {
+                var resolvedIds = new HashSet<string>(result.ResolvedSourceFileIds, StringComparer.Ordinal);
+                foreach (var failedDownload in this._failedDownloadList.Where(f => f.GDriveFile != null && resolvedIds.Contains(f.GDriveFile.Id)))
+                {
+                    failedDownload.ResolvedByAutoSplit = true;
+                }
+            }
+
+            this._logger.Warn(
+                $"RunId [{this._runId}] large GDoc auto-split execution finished: Attempted [{result.Attempted}], Succeeded [{result.Succeeded}], Failed [{result.Failed}], DryRun [{result.DryRun}], Report [{result.ReportPath}].");
+        }
+
         private static string BuildDriveWebLink(Google.Apis.Drive.v3.Data.File file)
         {
             if (file == null || string.IsNullOrWhiteSpace(file.Id))
@@ -299,7 +372,10 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
         private string WriteFailedExportsReportAndLogSummary()
         {
             var nonRetryableFailures = this._failedDownloadList
-                .Where(f => !f.IsRetryable && f.GDriveFile != null && !string.IsNullOrWhiteSpace(f.GDriveFile.Id))
+                .Where(f => !f.ResolvedByAutoSplit
+                            && !f.IsRetryable
+                            && f.GDriveFile != null
+                            && !string.IsNullOrWhiteSpace(f.GDriveFile.Id))
                 .GroupBy(f => f.GDriveFile.Id)
                 .Select(group => group.Last())
                 .ToList();
@@ -353,14 +429,9 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
         private string WriteLargeGdocSplitPlanReportAndLogSummary()
         {
             var settings = ApplicationSettings.GetInstance();
-            if (!settings.EnableLargeGdocAutoSplit)
-            {
-                this._logger.Info($"RunId [{this._runId}] large GDoc auto-split planner disabled.");
-                return string.Empty;
-            }
-
             var candidates = this._failedDownloadList
-                .Where(f => GoogleDriveDownloaderGdocForLargeFiles.IsOversizedGdocExportFailure(
+                .Where(f => !f.ResolvedByAutoSplit
+                            && GoogleDriveDownloaderGdocForLargeFiles.IsOversizedGdocExportFailure(
                     f.GDriveFile,
                     f.LocelMimeType,
                     f.IsRetryable,
@@ -420,10 +491,12 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
         #endregion
 
 
-        public BackupDomain(DateTime lastRunDate)
+        public BackupDomain(DateTime lastRunDate, string autoSplitFileId = "")
         {
             this._lastRunDate = lastRunDate;
+            this._largeGdocAutoSplitFileId = (autoSplitFileId ?? string.Empty).Trim();
             this._logger = ApplicationLogger.GetInstance();
+            this._consoleHeartbeat = new BackupConsoleHeartbeat(this._logger);
 
             // Keep one place where we resolve and sanitize tuning knobs from config.
             var configuredConcurrency = ApplicationSettings.GetInstance().MaxConcurrentDownloads;
@@ -435,6 +508,77 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
         public void Start()
         {
             this.StartAsync().GetAwaiter().GetResult();
+        }
+
+        public void StartSplitOnly(string fileId)
+        {
+            this.StartSplitOnlyAsync(fileId).GetAwaiter().GetResult();
+        }
+
+        public async Task StartSplitOnlyAsync(string fileId)
+        {
+            if (string.IsNullOrWhiteSpace(fileId))
+            {
+                throw new ArgumentException("Split-only mode requires a non-empty Google Drive file id.", nameof(fileId));
+            }
+
+            var runId = Guid.NewGuid().ToString("N");
+            this._logger.SetContext("RunId", runId);
+            var startUtc = DateTime.UtcNow;
+
+            try
+            {
+                this._logger.Info(
+                    $"Split-only run started. RunId [{runId}], FileId [{fileId}], ExportPath [{ApplicationSettings.GetInstance().ExportPath}].");
+
+                var gAuth = new GoogleDriveAuthenticate();
+                var credential = gAuth.Authenticate();
+
+                var gService = new GoogleDriveService();
+                var service = gService.GetService(credential);
+
+                var sourceFile = new GoogleDriveFile(service).GetFile(fileId);
+                if (sourceFile == null)
+                {
+                    this._logger.Error($"Split-only run failed: file not found for FileId [{fileId}].");
+                    return;
+                }
+
+                if (!string.Equals(sourceFile.MimeType, MimeTypeConstants.Gdoc, StringComparison.OrdinalIgnoreCase))
+                {
+                    this._logger.Warn(
+                        $"Split-only run file is not a Google Doc. FileId [{fileId}], MimeType [{sourceFile.MimeType}].");
+                }
+
+                var splitter = new GoogleDriveLargeGdocAutoSplitter(service, credential, this._logger);
+                var candidate = new GoogleDriveLargeGdocAutoSplitter.LargeGdocSplitCandidate
+                {
+                    SourceFile = sourceFile,
+                    // In split-only mode we do not have an original folder context; export to root export path.
+                    LocalPath = ApplicationSettings.GetInstance().ExportPath,
+                    FailureReason = "PDF export too large for Drive export API.",
+                    AttemptedExportMimeType = MimeTypeConstants.ApplicationPdf
+                };
+
+                var result = await splitter.ExecuteAsync(
+                        new List<GoogleDriveLargeGdocAutoSplitter.LargeGdocSplitCandidate> { candidate },
+                        runId)
+                    .ConfigureAwait(false);
+
+                var duration = DateTime.UtcNow - startUtc;
+                this._logger.Info(
+                    $"Split-only run completed. RunId [{runId}], Duration [{duration:dd\\.hh\\:mm\\:ss\\:fff}], Attempted [{result.Attempted}], Succeeded [{result.Succeeded}], Failed [{result.Failed}], DryRun [{result.DryRun}], Report [{result.ReportPath}].");
+            }
+            catch (Exception ex)
+            {
+                this._logger.Error(
+                    $"Split-only run aborted due to an unhandled exception. RunId [{runId}], FileId [{fileId}].",
+                    ex);
+            }
+            finally
+            {
+                this._logger.ClearContext("RunId");
+            }
         }
 
         public async Task StartAsync()
@@ -453,7 +597,12 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
             this._nonRetryableFailures = 0;
             this._failedExportsReportPath = string.Empty;
             this._largeGdocSplitPlanPath = string.Empty;
+            this._largeGdocSplitExecutionPath = string.Empty;
             this._largeGdocSplitCandidates = 0;
+            this._largeGdocAutoSplitAttempted = 0;
+            this._largeGdocAutoSplitSucceeded = 0;
+            this._largeGdocAutoSplitFailed = 0;
+            this._largeGdocAutoSplitDryRun = false;
             // Global download throttle to avoid overwhelming Drive API and local I/O.
             this._downloadSemaphore = new SemaphoreSlim(this._maxConcurrentDownloads, this._maxConcurrentDownloads);
             var runCompleted = false;
@@ -463,6 +612,15 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
                 var mode = this._lastRunDate == DateTime.MinValue ? "all" : "changes";
                 this._logger.Info(
                     $"Backup run started. RunId [{this._runId}], Mode [{mode}], LastRunDate [{this._lastRunDate:o}], ExportPath [{ApplicationSettings.GetInstance().ExportPath}], MaxConcurrentDownloads [{this._maxConcurrentDownloads}].");
+                // Keep orchestration in the domain and heartbeat internals in a dedicated class.
+                this._consoleHeartbeat.Configure(
+                    this._runId,
+                    this._startRunDate,
+                    () => Interlocked.Read(ref this._foldersVisited),
+                    () => Interlocked.Read(ref this._filesDiscovered),
+                    () => Interlocked.Read(ref this._downloadAttempts),
+                    () => Interlocked.Read(ref this._initialFailuresDetected));
+                this._consoleHeartbeat.Start();
 
                 var gAuth = new GoogleDriveAuthenticate();
                 var credential = gAuth.Authenticate();
@@ -481,6 +639,7 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
                 await Task.WhenAll(this._folderDownloadTasks).ConfigureAwait(false);
 
                 await this.RetryFailedDownloadsAsync(service).ConfigureAwait(false);
+                await this.ExecuteLargeGdocAutoSplitAsync(service, credential).ConfigureAwait(false);
                 this.UpdateLastRunDate();
                 runCompleted = true;
             }
@@ -516,9 +675,10 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
                 var duration = DateTime.UtcNow - this._startRunDate;
                 var runStatus = runCompleted ? "completed" : "aborted";
                 this._logger.Info(
-                    $"Backup run {runStatus}. RunId [{this._runId}], Duration [{duration:dd\\.hh\\:mm\\:ss\\:fff}], FoldersVisited [{this._foldersVisited}], FilesDiscovered [{this._filesDiscovered}], DownloadCalls [{this._downloadAttempts}], InitialFailures [{this._initialFailuresDetected}], RetryAttempts [{this._retryAttempts}], RetryCallsCompleted [{this._retryCompletedCalls}], NonRetryableFailures [{this._nonRetryableFailures}], FailedExportsReport [{this._failedExportsReportPath}], LargeGdocSplitCandidates [{this._largeGdocSplitCandidates}], LargeGdocSplitPlanReport [{this._largeGdocSplitPlanPath}].");
+                    $"Backup run {runStatus}. RunId [{this._runId}], Duration [{duration:dd\\.hh\\:mm\\:ss\\:fff}], FoldersVisited [{this._foldersVisited}], FilesDiscovered [{this._filesDiscovered}], DownloadCalls [{this._downloadAttempts}], InitialFailures [{this._initialFailuresDetected}], RetryAttempts [{this._retryAttempts}], RetryCallsCompleted [{this._retryCompletedCalls}], NonRetryableFailures [{this._nonRetryableFailures}], FailedExportsReport [{this._failedExportsReportPath}], LargeGdocSplitCandidates [{this._largeGdocSplitCandidates}], LargeGdocSplitPlanReport [{this._largeGdocSplitPlanPath}], LargeGdocSplitExecutionReport [{this._largeGdocSplitExecutionPath}], LargeGdocAutoSplitAttempted [{this._largeGdocAutoSplitAttempted}], LargeGdocAutoSplitSucceeded [{this._largeGdocAutoSplitSucceeded}], LargeGdocAutoSplitFailed [{this._largeGdocAutoSplitFailed}], LargeGdocAutoSplitDryRun [{this._largeGdocAutoSplitDryRun}].");
 
                 this._downloadSemaphore?.Dispose();
+                this._consoleHeartbeat.Stop();
                 this._logger.ClearContext("RunId");
             }
         }

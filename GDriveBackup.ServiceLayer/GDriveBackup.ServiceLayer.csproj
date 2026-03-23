@@ -68,6 +68,7 @@
   <ItemGroup>
     <Compile Include="GoogleDrive\Authenticate\GoogleDriveAuthenticate.cs" />
     <Compile Include="GoogleDrive\Downloader\GoogleDriveDownloaderUnsupportedFile.cs" />
+    <Compile Include="GoogleDrive\Downloader\GoogleDriveLargeGdocAutoSplitter.cs" />
     <Compile Include="GoogleDrive\Downloader\GoogleDriveDownloaderGdocForLargeFiles.cs" />
     <Compile Include="GoogleDrive\Downloader\GoogleDriveDownloaderTxt.cs" />
     <Compile Include="GoogleDrive\Downloader\GoogleDriveDownloaderGsheet.cs" />

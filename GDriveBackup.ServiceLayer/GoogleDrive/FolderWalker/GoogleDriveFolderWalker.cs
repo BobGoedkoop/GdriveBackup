@@ -40,7 +40,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.FolderWalker
         {
             if (this.OnFinished == null)
             {
-                this._logger.Debug($"Folder walker has no OnFinished handler; skipping callback.");
+                this._logger.Trace($"Folder walker has no OnFinished handler; skipping callback.");
                 return;
             }
 
@@ -57,7 +57,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.FolderWalker
 
         private void DoWalk( WalkerCurrentFolder currentFolder, int folderDepth )
         {
-            this._logger.Debug( $"Walk Google Drive folder [{currentFolder.GDriveFile.Name}]; depth [{folderDepth}].");
+            this._logger.Trace( $"Walk Google Drive folder [{currentFolder.GDriveFile.Name}]; depth [{folderDepth}].");
 
             //if (folderDepth > 0)
             //{

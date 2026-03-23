@@ -36,14 +36,31 @@ namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter
                 _commandLineModel.ConfigResetLastRunDate = true;
             }
 
+            if (options.Help)
+            {
+                _commandLineModel.HelpRequested = true;
+            }
+
 
             if ( options.Backup == "changes")
             {
                 _commandLineModel.BackupChanges = true;
+                _commandLineModel.AutoSplitFileId = options.AutoSplitFileId ?? string.Empty;
             }
             if (options.Backup == "all")
             {
                 _commandLineModel.BackupAll = true;
+                _commandLineModel.AutoSplitFileId = options.AutoSplitFileId ?? string.Empty;
+            }
+            if (options.Backup == "split")
+            {
+                _commandLineModel.BackupSplitOnly = true;
+                _commandLineModel.SplitFileId = options.SplitFileId ?? string.Empty;
+
+                if (string.IsNullOrWhiteSpace(_commandLineModel.SplitFileId))
+                {
+                    _commandLineModel.Error = true;
+                }
             }
         }
 
@@ -66,6 +83,19 @@ namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter
         public static CommandLineModel Parse( string[] args )
         {
             _commandLineModel = new CommandLineModel();
+            if (args != null)
+            {
+                foreach (var arg in args)
+                {
+                    if (string.Equals(arg, "/h", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(arg, "/?", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(arg, "?", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _commandLineModel.HelpRequested = true;
+                        return _commandLineModel;
+                    }
+                }
+            }
 
             var parseResult = CommandLine.Parser.Default
                 .ParseArguments<CommandLineOptions>( args)

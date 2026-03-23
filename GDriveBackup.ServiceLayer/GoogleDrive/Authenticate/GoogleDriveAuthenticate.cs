@@ -19,7 +19,8 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Authenticate
 
             string[] scopes = new string[]
             {
-                DriveService.ScopeConstants.Drive
+                DriveService.ScopeConstants.Drive,
+                "https://www.googleapis.com/auth/documents"
             };
 
             var credential = GoogleCredential
