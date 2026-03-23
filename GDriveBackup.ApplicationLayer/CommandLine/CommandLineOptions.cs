@@ -1,16 +1,10 @@
-﻿using CommandLine.Text;
 using CommandLine;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter
+namespace GDriveBackup.ApplicationLayer.CommandLine
 {
     public sealed class CommandLineOptions
     {
-        [Option('b', "backup", Required = false,  HelpText = "changes: only changes since last run, all: all files, split: run split-only flow for one file.")]
+        [Option('b', "backup", Required = false, HelpText = "changes: only changes since last run, all: all files, split: run split-only flow for one file.")]
         public string Backup { get; set; }
 
         [Option("split-file-id", Required = false, HelpText = "Google Drive document id for backup=split mode.")]

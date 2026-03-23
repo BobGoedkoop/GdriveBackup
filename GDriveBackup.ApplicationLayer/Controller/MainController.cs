@@ -1,6 +1,6 @@
 ﻿using System;
 using GDriveBackup.ApplicationLayer.Processor;
-using GDriveBackup.BusinessLayer.Domain.CommandLineAdapter;
+using GDriveBackup.ApplicationLayer.CommandLine;
 using GDriveBackup.Core.Constants;
 using GDriveBackup.Crosscutting.Configuration;
 using GDriveBackup.Crosscutting.Logging;

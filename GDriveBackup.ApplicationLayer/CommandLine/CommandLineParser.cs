@@ -1,37 +1,29 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using CommandLine;
-using GDriveBackup.BusinessLayer.Domain.CommandLineAdapter.Model;
+using GDriveBackup.ApplicationLayer.CommandLine.Model;
 
-namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter
+namespace GDriveBackup.ApplicationLayer.CommandLine
 {
-
     public sealed class CommandLineParser
     {
         private static CommandLineModel _commandLineModel;
 
-        #region Private section
-
-        /// <summary>
-        /// Command line arguments passed are valid
-        /// </summary>
-        /// <param name="opts"></param>
-        private static void ParseOk( object opts )
+        private static void ParseOk(object opts)
         {
             var options = opts as CommandLineOptions;
 
-            if ( options == null )
+            if (options == null)
             {
                 throw new ArgumentNullException(nameof(options));
             }
 
-
-            if ( options.Config == "reset" )
+            if (options.Config == "reset")
             {
                 _commandLineModel.ConfigReset = true;
             }
 
-            if ( options.Config == "resetLastRunDate" )
+            if (options.Config == "resetLastRunDate")
             {
                 _commandLineModel.ConfigResetLastRunDate = true;
             }
@@ -41,17 +33,18 @@ namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter
                 _commandLineModel.HelpRequested = true;
             }
 
-
-            if ( options.Backup == "changes")
+            if (options.Backup == "changes")
             {
                 _commandLineModel.BackupChanges = true;
                 _commandLineModel.AutoSplitFileId = options.AutoSplitFileId ?? string.Empty;
             }
+
             if (options.Backup == "all")
             {
                 _commandLineModel.BackupAll = true;
                 _commandLineModel.AutoSplitFileId = options.AutoSplitFileId ?? string.Empty;
             }
+
             if (options.Backup == "split")
             {
                 _commandLineModel.BackupSplitOnly = true;
@@ -64,23 +57,12 @@ namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter
             }
         }
 
-        /// <summary>
-        /// Command line arguments passed are NOT valid
-        /// </summary>
-        /// <param name="errs"></param>
         private static void ParseNok(IEnumerable<Error> errs)
         {
             _commandLineModel.Error = true;
         }
 
-        #endregion
-
-
-        static CommandLineParser(  )
-        {
-        }
-
-        public static CommandLineModel Parse( string[] args )
+        public static CommandLineModel Parse(string[] args)
         {
             _commandLineModel = new CommandLineModel();
             if (args != null)
@@ -97,11 +79,10 @@ namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter
                 }
             }
 
-            var parseResult = CommandLine.Parser.Default
-                .ParseArguments<CommandLineOptions>( args)
-                .WithParsed( ParseOk )
-                .WithNotParsed( ParseNok )
-                ;
+            global::CommandLine.Parser.Default
+                .ParseArguments<CommandLineOptions>(args)
+                .WithParsed(ParseOk)
+                .WithNotParsed(ParseNok);
 
             return _commandLineModel;
         }

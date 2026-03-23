@@ -31,9 +31,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="CommandLine, Version=2.9.1.0, Culture=neutral, PublicKeyToken=5a870481e358d379, processorArchitecture=MSIL">
-      <HintPath>..\packages\CommandLineParser.2.9.1\lib\net461\CommandLine.dll</HintPath>
-    </Reference>
     <Reference Include="Google.Apis, Version=1.63.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
       <HintPath>..\packages\Google.Apis.1.63.0\lib\net45\Google.Apis.dll</HintPath>
     </Reference>
@@ -69,11 +66,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Domain\Backup\BackupLargeGdocAutoSplitService.cs" />
     <Compile Include="Domain\Backup\BackupConsoleHeartbeat.cs" />
     <Compile Include="Domain\Backup\BackupDomain.cs" />
-    <Compile Include="Domain\CommandLineAdapter\CommandLineOptions.cs" />
-    <Compile Include="Domain\CommandLineAdapter\CommandLineParser.cs" />
-    <Compile Include="Domain\CommandLineAdapter\Model\CommandLineModel.cs" />
+    <Compile Include="Domain\Backup\BackupRunReportService.cs" />
     <Compile Include="Domain\Run\RunDateDomain.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -170,11 +170,13 @@ namespace GDriveBackup.Crosscutting.Logging
 
         public void Trace(string message)
         {
+            ConsoleOutputCoordinator.PrepareForLogLine();
             Logger.Trace(message);
         }
 
         public void Trace(string message, Exception ex)
         {
+            ConsoleOutputCoordinator.PrepareForLogLine();
             Logger.Trace(ex, message);
         }
 
@@ -184,16 +186,19 @@ namespace GDriveBackup.Crosscutting.Logging
 
         public void Debug(string message)
         {
+            ConsoleOutputCoordinator.PrepareForLogLine();
             Logger.Debug(message);
         }
 
         public void Debug(string message, Exception ex)
         {
+            ConsoleOutputCoordinator.PrepareForLogLine();
             Logger.Debug(ex, message);
         }
 
         public void Debug(string message, IDictionary<string, object> properties)
         {
+            ConsoleOutputCoordinator.PrepareForLogLine();
             Logger.Log(BuildEvent(NLog.LogLevel.Debug, message, null, properties));
         }
 
@@ -233,16 +238,19 @@ namespace GDriveBackup.Crosscutting.Logging
 
         public void Info(string message)
         {
+            ConsoleOutputCoordinator.PrepareForLogLine();
             Logger.Info(message);
         }
 
         public void Info(string message, Exception ex)
         {
+            ConsoleOutputCoordinator.PrepareForLogLine();
             Logger.Info(ex, message);
         }
 
         public void Info(string message, IDictionary<string, object> properties)
         {
+            ConsoleOutputCoordinator.PrepareForLogLine();
             Logger.Log(BuildEvent(NLog.LogLevel.Info, message, null, properties));
         }
 
@@ -252,16 +260,19 @@ namespace GDriveBackup.Crosscutting.Logging
 
         public void Warn(string message)
         {
+            ConsoleOutputCoordinator.PrepareForLogLine();
             Logger.Warn(message);
         }
 
         public void Warn(string message, Exception ex)
         {
+            ConsoleOutputCoordinator.PrepareForLogLine();
             Logger.Warn(ex, message);
         }
 
         public void Warn(string message, IDictionary<string, object> properties)
         {
+            ConsoleOutputCoordinator.PrepareForLogLine();
             Logger.Log(BuildEvent(NLog.LogLevel.Warn, message, null, properties));
         }
 
@@ -271,16 +282,19 @@ namespace GDriveBackup.Crosscutting.Logging
 
         public void Error(string message)
         {
+            ConsoleOutputCoordinator.PrepareForLogLine();
             Logger.Error(message);
         }
 
         public void Error(string message, Exception ex)
         {
+            ConsoleOutputCoordinator.PrepareForLogLine();
             Logger.Error(ex, message);
         }
 
         public void Error(string message, IDictionary<string, object> properties)
         {
+            ConsoleOutputCoordinator.PrepareForLogLine();
             Logger.Log(BuildEvent(NLog.LogLevel.Error, message, null, properties));
         }
 
@@ -290,11 +304,13 @@ namespace GDriveBackup.Crosscutting.Logging
 
         public void Fatal(string message)
         {
+            ConsoleOutputCoordinator.PrepareForLogLine();
             Logger.Fatal(message);
         }
 
         public void Fatal(string message, Exception ex)
         {
+            ConsoleOutputCoordinator.PrepareForLogLine();
             Logger.Fatal(ex, message);
         }
 

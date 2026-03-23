@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.IO;
@@ -295,7 +295,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
             // Only retrieve metadata required for naming/export decisions.
             request.Fields = "nextPageToken, files(id, name, mimeType, modifiedTime, parents)";
 
-            var results = request.ExecuteAsync().Result;
+            var results = request.Execute();
 
             this.Logger.Trace($"List query returned [{results?.Files?.Count ?? 0}] files.");
 

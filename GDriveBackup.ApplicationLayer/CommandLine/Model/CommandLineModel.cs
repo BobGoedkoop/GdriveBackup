@@ -1,7 +1,4 @@
-﻿using System.Diagnostics.Eventing.Reader;
-using Microsoft.SqlServer.Server;
-
-namespace GDriveBackup.BusinessLayer.Domain.CommandLineAdapter.Model
+namespace GDriveBackup.ApplicationLayer.CommandLine.Model
 {
     public class CommandLineModel
     {

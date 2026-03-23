@@ -1,5 +1,5 @@
 using GDriveBackup.BusinessLayer.Domain.Backup;
-using GDriveBackup.BusinessLayer.Domain.CommandLineAdapter.Model;
+using GDriveBackup.ApplicationLayer.CommandLine.Model;
 using GDriveBackup.BusinessLayer.Domain.Run;
 using GDriveBackup.Crosscutting.Logging;
 using System;

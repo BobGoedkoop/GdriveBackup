@@ -76,6 +76,7 @@
     <Compile Include="Configuration\Exception\ConfigurationException.cs" />
     <Compile Include="Configuration\Exception\ConfigurationInvalidOrMissingValueException.cs" />
     <Compile Include="Logging\ApplicationLogger.cs" />
+    <Compile Include="Logging\ConsoleOutputCoordinator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

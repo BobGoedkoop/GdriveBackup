@@ -32,7 +32,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
         {
             var request = this.Service.Files.Get( gDriveFileId );
             request.Fields = "id, name, mimeType, modifiedTime, parents";
-            var file = request.ExecuteAsync().Result;
+            var file = request.Execute();
             return file;
         }
     }
