@@ -17,9 +17,12 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
 
         public override Task DownloadFileAsync(string localPath, Google.Apis.Drive.v3.Data.File file)
         {
-            //base.DoDownloadFile(localPath, FileExtensionConstants.Pdf, MimeTypeConstants.ApplicationPdf, file);
-            base.Logger.Warn( $"No download implementation for GSheet [{file.Name}]." );
-            return Task.CompletedTask;
+            // Export Google Sheets as Excel workbook for offline backup.
+            return base.DoDownloadFileAsync(
+                localPath,
+                FileExtensionConstants.Xlsx,
+                MimeTypeConstants.ApplicationXlsx,
+                file);
         }
 
         public override void DownloadAll(  DateTime since )

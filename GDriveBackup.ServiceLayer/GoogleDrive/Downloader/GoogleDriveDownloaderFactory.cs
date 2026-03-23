@@ -47,6 +47,25 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
             {
                 downloader = new GoogleDriveDownloaderTxt(service);
             }
+            else if (file.MimeType == MimeTypeConstants.ApplicationPdf)
+            {
+                downloader = new GoogleDriveDownloaderPdf(service);
+            }
+            else if (!string.IsNullOrWhiteSpace(file.MimeType)
+                     && file.MimeType.StartsWith("video/", System.StringComparison.OrdinalIgnoreCase))
+            {
+                downloader = new GoogleDriveDownloaderVideo(service);
+            }
+            else if (!string.IsNullOrWhiteSpace(file.MimeType)
+                     && file.MimeType.StartsWith("audio/", System.StringComparison.OrdinalIgnoreCase))
+            {
+                downloader = new GoogleDriveDownloaderAudio(service);
+            }
+            else if (!string.IsNullOrWhiteSpace(file.MimeType)
+                     && file.MimeType.StartsWith("image/", System.StringComparison.OrdinalIgnoreCase))
+            {
+                downloader = new GoogleDriveDownloaderImage(service);
+            }
             else
             {
                 this._logger.Warn($"No downloader available for file of type [{file.MimeType}] (Id [{file.Id}], Name [{file.Name}]).");

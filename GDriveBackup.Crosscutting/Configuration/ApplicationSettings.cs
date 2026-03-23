@@ -29,6 +29,7 @@ namespace GDriveBackup.Crosscutting.Configuration
             public const string KeepTemporarySplitDocs = "KeepTemporarySplitDocs";
             public const string DriveApiTransientRetryCount = "DriveApiTransientRetryCount";
             public const string DriveApiRetryBaseDelayMs = "DriveApiRetryBaseDelayMs";
+            public const string DriveApiMaxConcurrentListRequests = "DriveApiMaxConcurrentListRequests";
             public const string DriveApiRequestTimeoutSeconds = "DriveApiRequestTimeoutSeconds";
             public const string EnableConsoleHeartbeat = "EnableConsoleHeartbeat";
             public const string ConsoleHeartbeatIntervalSeconds = "ConsoleHeartbeatIntervalSeconds";
@@ -244,6 +245,30 @@ namespace GDriveBackup.Crosscutting.Configuration
             {
                 const int fallbackValue = 750;
                 var value = GetAppSetting(AppSettingsKey.DriveApiRetryBaseDelayMs, false);
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    return fallbackValue;
+                }
+
+                if (!int.TryParse(value.Trim(), out var parsedValue))
+                {
+                    return fallbackValue;
+                }
+
+                return parsedValue > 0 ? parsedValue : fallbackValue;
+            }
+        }
+
+        /// <summary>
+        /// Max concurrent Drive API list requests (folders/files metadata).
+        /// Separate from download concurrency to avoid list-request bursts.
+        /// </summary>
+        public int DriveApiMaxConcurrentListRequests
+        {
+            get
+            {
+                const int fallbackValue = 4;
+                var value = GetAppSetting(AppSettingsKey.DriveApiMaxConcurrentListRequests, false);
                 if (string.IsNullOrWhiteSpace(value))
                 {
                     return fallbackValue;

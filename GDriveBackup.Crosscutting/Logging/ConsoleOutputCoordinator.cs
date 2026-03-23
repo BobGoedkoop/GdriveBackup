@@ -7,10 +7,15 @@ namespace GDriveBackup.Crosscutting.Logging
     {
         private static readonly object SyncRoot = new object();
         private static int _heartbeatActive;
+        private static int _heartbeatRenderedSinceLastLog;
 
         public static void SetHeartbeatActive(bool isActive)
         {
             Interlocked.Exchange(ref _heartbeatActive, isActive ? 1 : 0);
+            if (!isActive)
+            {
+                Interlocked.Exchange(ref _heartbeatRenderedSinceLastLog, 0);
+            }
         }
 
         public static void WriteHeartbeat(string line)
@@ -18,6 +23,7 @@ namespace GDriveBackup.Crosscutting.Logging
             lock (SyncRoot)
             {
                 Console.Write(line);
+                Interlocked.Exchange(ref _heartbeatRenderedSinceLastLog, 1);
             }
         }
 
@@ -26,12 +32,27 @@ namespace GDriveBackup.Crosscutting.Logging
             lock (SyncRoot)
             {
                 Console.Write("\r");
+                Interlocked.Exchange(ref _heartbeatRenderedSinceLastLog, 0);
             }
         }
 
         public static void PrepareForLogLine()
         {
-            // Intentionally no-op: keep legacy behavior where logs may continue on heartbeat line.
+            if (Interlocked.CompareExchange(ref _heartbeatActive, 0, 0) == 0)
+            {
+                return;
+            }
+
+            if (Interlocked.CompareExchange(ref _heartbeatRenderedSinceLastLog, 0, 0) == 0)
+            {
+                return;
+            }
+
+            lock (SyncRoot)
+            {
+                Console.WriteLine();
+                Interlocked.Exchange(ref _heartbeatRenderedSinceLastLog, 0);
+            }
         }
     }
 }

@@ -52,6 +52,9 @@
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="PdfSharp">
+      <HintPath>..\packages\PdfSharp.1.50.5147\lib\net20\PdfSharp.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.CodeDom, Version=7.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.CodeDom.7.0.0\lib\net462\System.CodeDom.dll</HintPath>
@@ -70,6 +73,10 @@
     <Compile Include="GoogleDrive\Downloader\GoogleDriveDownloaderUnsupportedFile.cs" />
     <Compile Include="GoogleDrive\Downloader\GoogleDriveLargeGdocAutoSplitter.cs" />
     <Compile Include="GoogleDrive\Downloader\GoogleDriveDownloaderGdocForLargeFiles.cs" />
+    <Compile Include="GoogleDrive\Downloader\GoogleDriveDownloaderImage.cs" />
+    <Compile Include="GoogleDrive\Downloader\GoogleDriveDownloaderAudio.cs" />
+    <Compile Include="GoogleDrive\Downloader\GoogleDriveDownloaderVideo.cs" />
+    <Compile Include="GoogleDrive\Downloader\GoogleDriveDownloaderPdf.cs" />
     <Compile Include="GoogleDrive\Downloader\GoogleDriveDownloaderTxt.cs" />
     <Compile Include="GoogleDrive\Downloader\GoogleDriveDownloaderGsheet.cs" />
     <Compile Include="GoogleDrive\Downloader\GoogleDriveDownloaderGdoc.cs" />

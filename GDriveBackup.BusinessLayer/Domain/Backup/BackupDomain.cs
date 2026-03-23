@@ -217,35 +217,55 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
                 .Where(failedDownload => failedDownload.IsRetryable)
                 .ToList();
 
-            foreach (var failedDownload in retryableDownloads)
+            if (retryableDownloads.Count <= 0)
             {
-                try
-                {
-                    Interlocked.Increment(ref this._retryAttempts);
-                    Interlocked.Increment(ref this._downloadAttempts);
-                    this._logger.Warn(
-                        $"RunId [{this._runId}] retrying download: Name [{failedDownload.GDriveFile.Name}], Id [{failedDownload.GDriveFile.Id}], LocalPath [{failedDownload.LocalPath}].",
-                        new Dictionary<string, object>
-                        {
-                            ["RunId"] = this._runId,
-                            ["RetryAttempt"] = this._retryAttempts,
-                            ["FileId"] = failedDownload.GDriveFile.Id ?? string.Empty,
-                            ["MimeType"] = failedDownload.GDriveFile.MimeType ?? string.Empty,
-                            ["LocalPath"] = failedDownload.LocalPath ?? string.Empty
-                        });
+                return;
+            }
 
-                    await GoogleDriveDownloaderFactory.GetInstance()
-                        .GetDownloader(service, failedDownload.GDriveFile)
-                        .DownloadFileAsync(failedDownload.LocalPath, failedDownload.GDriveFile)
-                        .ConfigureAwait(false);
-                    Interlocked.Increment(ref this._retryCompletedCalls);
-                }
-                catch (Exception ex)
-                {
-                    this._logger.Error(
-                        $"The retry of the failed download ([{failedDownload.GDriveFile.Name}] to [{failedDownload.LocalPath}]) failed.",
-                        ex);
-                }
+            // Retry in parallel under the same global download throttle used by initial downloads.
+            var retryTasks = retryableDownloads
+                .Select(failedDownload => this.RetryFailedDownloadWithThrottleAsync(service, failedDownload))
+                .ToList();
+
+            await Task.WhenAll(retryTasks).ConfigureAwait(false);
+        }
+
+        private async Task RetryFailedDownloadWithThrottleAsync(DriveService service, FailedDownload failedDownload)
+        {
+            await this._downloadSemaphore.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                Interlocked.Increment(ref this._retryAttempts);
+                Interlocked.Increment(ref this._downloadAttempts);
+                this._logger.Warn(
+                    $"RunId [{this._runId}] retrying download: Name [{failedDownload.GDriveFile.Name}], Id [{failedDownload.GDriveFile.Id}], LocalPath [{failedDownload.LocalPath}].",
+                    new Dictionary<string, object>
+                    {
+                        ["RunId"] = this._runId,
+                        ["RetryAttempt"] = this._retryAttempts,
+                        ["FileId"] = failedDownload.GDriveFile.Id ?? string.Empty,
+                        ["MimeType"] = failedDownload.GDriveFile.MimeType ?? string.Empty,
+                        ["LocalPath"] = failedDownload.LocalPath ?? string.Empty
+                    });
+
+                var downloader = GoogleDriveDownloaderFactory.GetInstance()
+                    .GetDownloader(service, failedDownload.GDriveFile);
+                downloader.OnFailed = DoDownloadFailedHandler;
+
+                await downloader
+                    .DownloadFileAsync(failedDownload.LocalPath, failedDownload.GDriveFile)
+                    .ConfigureAwait(false);
+                Interlocked.Increment(ref this._retryCompletedCalls);
+            }
+            catch (Exception ex)
+            {
+                this._logger.Error(
+                    $"The retry of the failed download ([{failedDownload.GDriveFile.Name}] to [{failedDownload.LocalPath}]) failed.",
+                    ex);
+            }
+            finally
+            {
+                this._downloadSemaphore.Release();
             }
         }
 

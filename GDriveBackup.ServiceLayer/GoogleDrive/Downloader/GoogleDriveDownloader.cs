@@ -25,6 +25,8 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
         private readonly DriveService _service;
         private static readonly ConcurrentDictionary<string, object> DestinationFileLocks =
             new ConcurrentDictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        private static readonly ThreadLocal<Random> RetryJitterRandom =
+            new ThreadLocal<Random>(() => new Random(Guid.NewGuid().GetHashCode()));
 
 
         private void DoFailedHandler(
@@ -119,16 +121,26 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
                 var tmpFullPath = $"{dstFullPath}.partial.{Guid.NewGuid():N}";
                 try
                 {
-                    var getRequest = this._service.Files.Export(
-                        file.Id,
-                        localMimeType
-                    );
+                    // Use media download for non-Google-native files (same source/target mime type).
+                    // Export is only valid for Google Docs Editors types and fails for files like text/plain.
+                    var useDirectMediaDownload =
+                        string.Equals(file?.MimeType, localMimeType, StringComparison.OrdinalIgnoreCase);
 
                     // Write to a temporary file first. This prevents a failed/partial download
                     // from truncating a previously good backup file to 0 bytes.
                     using (var filestream = new FileStream(tmpFullPath, FileMode.CreateNew, FileAccess.Write))
                     {
-                        var downloadProgress = await getRequest.DownloadAsync(filestream);
+                        IDownloadProgress downloadProgress;
+                        if (useDirectMediaDownload)
+                        {
+                            var getRequest = this._service.Files.Get(file.Id);
+                            downloadProgress = await getRequest.DownloadAsync(filestream).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            var exportRequest = this._service.Files.Export(file.Id, localMimeType);
+                            downloadProgress = await exportRequest.DownloadAsync(filestream).ConfigureAwait(false);
+                        }
                         filestream.Flush();
 
                         // A request can complete without throwing, yet still produce an empty file.
@@ -167,7 +179,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
                 }
                 catch (Exception ex) when (attempt < maxAttempts && this.IsTransientException(ex))
                 {
-                    var delayMs = baseDelayMs * (int)Math.Pow(2, attempt - 1);
+                    var delayMs = CalculateBackoffDelayWithJitter(baseDelayMs, attempt);
                     this.Logger.Warn(
                         $"Transient export failure for [{file.Name}] (Id [{file.Id}]) attempt {attempt}/{maxAttempts}. Retrying in {delayMs} ms.",
                         new Dictionary<string, object>
@@ -187,6 +199,15 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
                     }
                 }
             }
+        }
+
+        private static int CalculateBackoffDelayWithJitter(int baseDelayMs, int attempt)
+        {
+            var exponentialDelay = baseDelayMs * (int)Math.Pow(2, attempt - 1);
+            var jitterRange = Math.Max(1, baseDelayMs / 2);
+            var jitterMs = RetryJitterRandom.Value.Next(0, jitterRange + 1);
+            var delay = exponentialDelay + jitterMs;
+            return delay > 0 ? delay : baseDelayMs;
         }
 
         protected readonly IApplicationLogger Logger;

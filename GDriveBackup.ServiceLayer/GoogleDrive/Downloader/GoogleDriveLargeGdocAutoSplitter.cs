@@ -1,10 +1,13 @@
 using GDriveBackup.Core.Constants;
+using GDriveBackup.Core.Extensions;
 using GDriveBackup.Crosscutting.Configuration;
 using GDriveBackup.Crosscutting.Logging;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using PdfSharp.Pdf;
+using PdfSharp.Pdf.IO;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -23,6 +26,9 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
     /// </summary>
     public class GoogleDriveLargeGdocAutoSplitter
     {
+        private const int MaxRecursiveSplitDepth = 4;
+        private const int MinRecursiveSplitCharsPerPart = 20000;
+
         private sealed class BlockInfo
         {
             public int StartIndex { get; set; }
@@ -43,6 +49,12 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
             public List<SplitChunkPlan> Chunks { get; } = new List<SplitChunkPlan>();
         }
 
+        private static class SplitMode
+        {
+            public const string Heading1 = "Heading1";
+            public const string SizeOnly = "SizeOnly";
+        }
+
         public class LargeGdocSplitCandidate
         {
             public Google.Apis.Drive.v3.Data.File SourceFile { get; set; }
@@ -59,6 +71,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
             public string Details { get; set; }
             public int ChunkCount { get; set; }
             public List<string> CreatedPartDocIds { get; set; } = new List<string>();
+            public string StitchedPdfPath { get; set; }
         }
 
         public class LargeGdocSplitExecutionResult
@@ -142,6 +155,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
                     }
 
                     var partCounter = 1;
+                    var stitchedPartFiles = new List<(string SequenceKey, string FilePath)>();
                     foreach (var chunk in plan.Chunks)
                     {
                         var partTitle = $"{candidate.SourceFile.Name} - split {partCounter:00}";
@@ -154,29 +168,37 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
                                 chunk.KeepEndIndex,
                                 plan.DocumentEndIndex)
                             .ConfigureAwait(false);
-
-                        // Reuse existing GDoc downloader so split parts follow the same local naming/path rules.
-                        var partFile = new Google.Apis.Drive.v3.Data.File
-                        {
-                            Id = partDocId,
-                            Name = partTitle,
-                            MimeType = MimeTypeConstants.Gdoc
-                        };
-
-                        await new GoogleDriveDownloaderGdoc(this._driveService)
-                            .DownloadFileAsync(candidate.LocalPath, partFile)
+                        var exported = await this.ExportPartWithRecursiveSplitAsync(
+                                partDocId,
+                                partTitle,
+                                candidate.LocalPath,
+                                settings,
+                                settings.LargeGdocMaxCharsPerPart,
+                                0,
+                                item,
+                                $"{partCounter:00}",
+                                stitchedPartFiles)
                             .ConfigureAwait(false);
-
-                        if (!settings.KeepTemporarySplitDocs)
+                        if (!exported)
                         {
-                            await this._driveService.Files.Delete(partDocId).ExecuteAsync().ConfigureAwait(false);
+                            throw new InvalidOperationException(
+                                $"Export failed for split part [{partTitle}] after recursive splitting attempts.");
                         }
 
                         partCounter++;
                     }
 
+                    var stitchedPdfPath = this.BuildStitchedOutputPdfPath(candidate.LocalPath, candidate.SourceFile.Name);
+                    this.MergePdfs(
+                        stitchedPartFiles
+                            .OrderBy(part => part.SequenceKey, StringComparer.Ordinal)
+                            .Select(part => part.FilePath)
+                            .ToList(),
+                        stitchedPdfPath);
+                    item.StitchedPdfPath = stitchedPdfPath;
+
                     item.Status = "succeeded";
-                    item.Details = $"Created/exported [{item.ChunkCount}] split parts.";
+                    item.Details = $"Created/exported [{item.ChunkCount}] split parts and stitched into [{stitchedPdfPath}].";
                     result.Succeeded++;
                     result.ResolvedSourceFileIds.Add(candidate.SourceFile.Id);
                 }
@@ -192,6 +214,223 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
             }
 
             return await this.WriteExecutionReportAsync(result).ConfigureAwait(false);
+        }
+
+        private async Task<bool> ExportPartWithRecursiveSplitAsync(
+            string documentId,
+            string title,
+            string localPath,
+            ApplicationSettings settings,
+            int maxCharsPerPart,
+            int recursionDepth,
+            LargeGdocSplitExecutionItem executionItem,
+            string sequenceKeyPrefix,
+            IList<(string SequenceKey, string FilePath)> stitchedPartFiles)
+        {
+            var exportResult = await this.TryExportDocumentAsPdfAsync(documentId, title, localPath).ConfigureAwait(false);
+            if (exportResult.Succeeded)
+            {
+                if (!string.IsNullOrWhiteSpace(exportResult.OutputFilePath))
+                {
+                    stitchedPartFiles.Add((sequenceKeyPrefix, exportResult.OutputFilePath));
+                }
+
+                if (!settings.KeepTemporarySplitDocs)
+                {
+                    await this.TryDeleteDocumentAsync(documentId).ConfigureAwait(false);
+                }
+
+                return true;
+            }
+
+            if (!exportResult.IsTooLargeExportFailure)
+            {
+                this._logger.Error(
+                    $"Auto-split part export failed for [{title}] without size-limit reason. Reason [{exportResult.FailureReason}].");
+                return false;
+            }
+
+            if (recursionDepth >= MaxRecursiveSplitDepth)
+            {
+                this._logger.Warn(
+                    $"Auto-split recursion depth reached for [{title}] (DocId [{documentId}]).");
+                return false;
+            }
+
+            var nextMaxCharsPerPart = Math.Max(
+                MinRecursiveSplitCharsPerPart,
+                Math.Max(1, maxCharsPerPart / 2));
+
+            if (nextMaxCharsPerPart >= maxCharsPerPart)
+            {
+                this._logger.Warn(
+                    $"Auto-split cannot reduce chunk size further for [{title}] (DocId [{documentId}]).");
+                return false;
+            }
+
+            this._logger.Warn(
+                $"Auto-split retry: split part [{title}] (DocId [{documentId}]) still too large. Splitting again with MaxCharsPerPart [{nextMaxCharsPerPart}] at recursion depth [{recursionDepth + 1}].");
+
+            // For parts that are still too large, force size-only splitting.
+            // This intentionally ignores heading boundaries to guarantee smaller chunks.
+            var childPlan = await this.BuildSplitPlanAsync(documentId, SplitMode.SizeOnly, nextMaxCharsPerPart).ConfigureAwait(false);
+            if (childPlan.Chunks.Count <= 1)
+            {
+                this._logger.Warn(
+                    $"Auto-split could not produce multiple child chunks for [{title}] (DocId [{documentId}]).");
+                return false;
+            }
+
+            var subPartCounter = 1;
+            var allChildrenExported = true;
+            foreach (var childChunk in childPlan.Chunks)
+            {
+                var childTitle = $"{title}.{subPartCounter:00}";
+                var childDocId = await this.CopyDocumentAsync(documentId, childTitle).ConfigureAwait(false);
+                executionItem.CreatedPartDocIds.Add(childDocId);
+
+                await this.TrimDocumentToRangeAsync(
+                        childDocId,
+                        childChunk.KeepStartIndex,
+                        childChunk.KeepEndIndex,
+                        childPlan.DocumentEndIndex)
+                    .ConfigureAwait(false);
+
+                var childExported = await this.ExportPartWithRecursiveSplitAsync(
+                        childDocId,
+                        childTitle,
+                        localPath,
+                        settings,
+                        nextMaxCharsPerPart,
+                        recursionDepth + 1,
+                        executionItem,
+                        $"{sequenceKeyPrefix}.{subPartCounter:00}",
+                        stitchedPartFiles)
+                    .ConfigureAwait(false);
+                if (!childExported)
+                {
+                    allChildrenExported = false;
+                }
+
+                subPartCounter++;
+            }
+
+            if (!settings.KeepTemporarySplitDocs)
+            {
+                await this.TryDeleteDocumentAsync(documentId).ConfigureAwait(false);
+            }
+
+            return allChildrenExported;
+        }
+
+        private async Task<(bool Succeeded, bool IsTooLargeExportFailure, string FailureReason, string OutputFilePath)> TryExportDocumentAsPdfAsync(
+            string documentId,
+            string documentName,
+            string localPath)
+        {
+            var exported = true;
+            var isTooLargeFailure = false;
+            var failureReason = string.Empty;
+            var outputFilePath = Path.Combine(
+                localPath,
+                Path.ChangeExtension(documentName.ToValidFileName().ReplaceSpaceCharacters(), FileExtensionConstants.Pdf));
+
+            var downloadFile = new Google.Apis.Drive.v3.Data.File
+            {
+                Id = documentId,
+                Name = documentName,
+                MimeType = MimeTypeConstants.Gdoc
+            };
+
+            var downloader = new GoogleDriveDownloaderGdoc(this._driveService);
+            downloader.OnFailed = (failedLocalPath, failedLocalExt, attemptedExportMimeType, failedFile, isRetryable, reason) =>
+            {
+                exported = false;
+                failureReason = reason ?? string.Empty;
+                isTooLargeFailure = GoogleDriveDownloaderGdocForLargeFiles.IsOversizedGdocExportFailure(
+                    failedFile,
+                    attemptedExportMimeType,
+                    isRetryable,
+                    reason);
+            };
+
+            await downloader.DownloadFileAsync(localPath, downloadFile).ConfigureAwait(false);
+            return (exported, isTooLargeFailure, failureReason, outputFilePath);
+        }
+
+        private async Task TryDeleteDocumentAsync(string documentId)
+        {
+            try
+            {
+                await this._driveService.Files.Delete(documentId).ExecuteAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                this._logger.Warn($"Failed to delete temporary split document [{documentId}].", ex);
+            }
+        }
+
+        private string BuildStitchedOutputPdfPath(string localPath, string sourceFileName)
+        {
+            return Path.Combine(
+                localPath,
+                Path.ChangeExtension(
+                    sourceFileName.ToValidFileName().ReplaceSpaceCharacters(),
+                    FileExtensionConstants.Pdf));
+        }
+
+        private void MergePdfs(IList<string> inputFiles, string outputFile)
+        {
+            if (inputFiles == null || inputFiles.Count <= 0)
+            {
+                throw new InvalidOperationException("No split part PDFs available to stitch.");
+            }
+
+            var outputDirectory = Path.GetDirectoryName(outputFile);
+            if (!string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                Directory.CreateDirectory(outputDirectory);
+            }
+
+            var tempOutput = $"{outputFile}.merge.{Guid.NewGuid():N}.partial";
+            var mergedDocument = new PdfDocument();
+
+            try
+            {
+                foreach (var inputFile in inputFiles)
+                {
+                    if (!File.Exists(inputFile))
+                    {
+                        throw new FileNotFoundException("Split part PDF not found.", inputFile);
+                    }
+
+                    using (var partDocument = PdfReader.Open(inputFile, PdfDocumentOpenMode.Import))
+                    {
+                        for (var i = 0; i < partDocument.PageCount; i++)
+                        {
+                            mergedDocument.AddPage(partDocument.Pages[i]);
+                        }
+                    }
+                }
+
+                mergedDocument.Save(tempOutput);
+                mergedDocument.Close();
+
+                if (File.Exists(outputFile))
+                {
+                    File.Delete(outputFile);
+                }
+
+                File.Move(tempOutput, outputFile);
+            }
+            finally
+            {
+                mergedDocument.Dispose();
+                if (File.Exists(tempOutput))
+                {
+                    File.Delete(tempOutput);
+                }
+            }
         }
 
         private async Task<LargeGdocSplitExecutionResult> WriteExecutionReportAsync(LargeGdocSplitExecutionResult result)
@@ -230,7 +469,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
             foreach (var block in blocks)
             {
                 // Start a new split at heading boundaries to keep semantic sections together.
-                if (string.Equals(splitMode, "Heading1", StringComparison.OrdinalIgnoreCase)
+                if (string.Equals(splitMode, SplitMode.Heading1, StringComparison.OrdinalIgnoreCase)
                     && block.IsHeading1
                     && currentChunk.Count > 0)
                 {
@@ -254,6 +493,52 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
             if (currentChunk.Count > 0)
             {
                 plan.Chunks.Add(this.CreateChunkPlan(currentChunk));
+            }
+
+            // Size-only fallback for very large blocks: if normal block-based packing still results in a single
+            // chunk larger than the target, force index-range slicing by maxCharsPerPart.
+            if (string.Equals(splitMode, SplitMode.SizeOnly, StringComparison.OrdinalIgnoreCase))
+            {
+                var targetMax = Math.Max(1, maxCharsPerPart);
+                var singleChunkTooLarge = plan.Chunks.Count == 1
+                                          && (plan.Chunks[0].KeepEndIndex - plan.Chunks[0].KeepStartIndex) > targetMax;
+                if (singleChunkTooLarge)
+                {
+                    var forcedPlan = this.BuildForcedSizeOnlyPlan(plan.DocumentEndIndex, targetMax);
+                    if (forcedPlan.Chunks.Count > 1)
+                    {
+                        return forcedPlan;
+                    }
+                }
+            }
+
+            return plan;
+        }
+
+        private SplitPlan BuildForcedSizeOnlyPlan(int documentEndIndex, int maxCharsPerPart)
+        {
+            var plan = new SplitPlan
+            {
+                DocumentEndIndex = Math.Max(2, documentEndIndex)
+            };
+
+            var keepStart = 1;
+            var lastContentIndex = Math.Max(1, plan.DocumentEndIndex - 1);
+            while (keepStart < lastContentIndex)
+            {
+                var keepEnd = Math.Min(lastContentIndex, keepStart + maxCharsPerPart);
+                if (keepEnd <= keepStart)
+                {
+                    break;
+                }
+
+                plan.Chunks.Add(new SplitChunkPlan
+                {
+                    KeepStartIndex = keepStart,
+                    KeepEndIndex = keepEnd
+                });
+
+                keepStart = keepEnd;
             }
 
             return plan;

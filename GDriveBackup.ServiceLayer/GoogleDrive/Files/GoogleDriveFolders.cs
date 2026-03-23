@@ -19,6 +19,15 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
 {
     public class GoogleDriveFolder : GoogleDriveFile
     {
+        private static readonly ThreadLocal<Random> RetryJitterRandom =
+            new ThreadLocal<Random>(() => new Random(Guid.NewGuid().GetHashCode()));
+        private static readonly Lazy<SemaphoreSlim> ListRequestSemaphore =
+            new Lazy<SemaphoreSlim>(() =>
+            {
+                var maxConcurrent = ApplicationSettings.GetInstance().DriveApiMaxConcurrentListRequests;
+                return new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            });
+
         private static bool IsTransientException(Exception ex)
         {
             var current = ex;
@@ -54,11 +63,11 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
             {
                 try
                 {
-                    return action();
+                    return this.ExecuteWithListThrottle(action);
                 }
                 catch (Exception ex) when (attempt < maxAttempts && IsTransientException(ex))
                 {
-                    var delayMs = baseDelayMs * (int)Math.Pow(2, attempt - 1);
+                    var delayMs = CalculateBackoffDelayWithJitter(baseDelayMs, attempt);
                     base.Logger.Warn(
                         $"{actionDescription} failed with transient error (attempt {attempt}/{maxAttempts}). Retrying in {delayMs} ms.");
                     Thread.Sleep(delayMs);
@@ -66,7 +75,30 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
             }
 
             // Last attempt should return/throw from inside the loop; this is a defensive fallback.
-            return action();
+            return this.ExecuteWithListThrottle(action);
+        }
+
+        private T ExecuteWithListThrottle<T>(Func<T> action)
+        {
+            var semaphore = ListRequestSemaphore.Value;
+            semaphore.Wait();
+            try
+            {
+                return action();
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+
+        private static int CalculateBackoffDelayWithJitter(int baseDelayMs, int attempt)
+        {
+            var exponentialDelay = baseDelayMs * (int)Math.Pow(2, attempt - 1);
+            var jitterRange = Math.Max(1, baseDelayMs / 2);
+            var jitterMs = RetryJitterRandom.Value.Next(0, jitterRange + 1);
+            var delay = exponentialDelay + jitterMs;
+            return delay > 0 ? delay : baseDelayMs;
         }
 
         public GoogleDriveFolder( DriveService service ) 
