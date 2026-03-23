@@ -19,9 +19,18 @@ namespace GDriveBackup.Crosscutting.Configuration
             //
             public const string ApplicationName = "ApplicationName";
             public const string ApplicationVersion = "ApplicationVersion";
+            public const string LogLevel = "LogLevel";
             public const string ExportPath = "ExportPath";
             public const string JsonCredentialsPath = "JsonCredentialsPath";
             public const string LocalStorePath = "LocalStorePath";
+            public const string MaxConcurrentDownloads = "MaxConcurrentDownloads";
+            public const string EnableLargeGdocAutoSplit = "EnableLargeGdocAutoSplit";
+            public const string LargeGdocSplitMode = "LargeGdocSplitMode";
+            public const string LargeGdocMaxCharsPerPart = "LargeGdocMaxCharsPerPart";
+            public const string KeepTemporarySplitDocs = "KeepTemporarySplitDocs";
+            public const string DriveApiTransientRetryCount = "DriveApiTransientRetryCount";
+            public const string DriveApiRetryBaseDelayMs = "DriveApiRetryBaseDelayMs";
+            public const string DriveApiRequestTimeoutSeconds = "DriveApiRequestTimeoutSeconds";
         }
 
 
@@ -69,6 +78,23 @@ namespace GDriveBackup.Crosscutting.Configuration
             }
         }
         /// <summary>
+        /// Global minimum log level.
+        /// Supported values: Trace, Debug, Info, Warn, Error, Fatal.
+        /// </summary>
+        public string LogLevel
+        {
+            get
+            {
+                var value = GetAppSetting(AppSettingsKey.LogLevel, false);
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    return "Info";
+                }
+
+                return value.Trim();
+            }
+        }
+        /// <summary>
         /// </summary>
         public string ExportPath
         {
@@ -100,6 +126,175 @@ namespace GDriveBackup.Crosscutting.Configuration
                 var value = GetAppSetting(AppSettingsKey.LocalStorePath);
                 value = value.Trim(); // Remove leading and trailing whitespace
                 return value;
+            }
+        }
+
+        /// <summary>
+        /// Number of concurrent Google Drive export/download operations.
+        /// Returns a safe default when missing/invalid to keep backups running.
+        /// </summary>
+        public int MaxConcurrentDownloads
+        {
+            get
+            {
+                const int fallbackValue = 6;
+
+                var value = GetAppSetting(AppSettingsKey.MaxConcurrentDownloads, false);
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    return fallbackValue;
+                }
+
+                if (!int.TryParse(value.Trim(), out var parsedValue))
+                {
+                    return fallbackValue;
+                }
+
+                return parsedValue > 0 ? parsedValue : fallbackValue;
+            }
+        }
+
+        /// <summary>
+        /// Enables automated handling for oversized Google Docs.
+        /// Current implementation generates split-plan artifacts only.
+        /// </summary>
+        public bool EnableLargeGdocAutoSplit
+        {
+            get
+            {
+                var value = GetAppSetting(AppSettingsKey.EnableLargeGdocAutoSplit, false);
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    return false;
+                }
+
+                return bool.TryParse(value.Trim(), out var parsedValue) && parsedValue;
+            }
+        }
+
+        /// <summary>
+        /// Strategy hint for future split processor implementations.
+        /// </summary>
+        public string LargeGdocSplitMode
+        {
+            get
+            {
+                var value = GetAppSetting(AppSettingsKey.LargeGdocSplitMode, false);
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    return "Heading1";
+                }
+
+                return value.Trim();
+            }
+        }
+
+        /// <summary>
+        /// Advisory upper bound used when creating split-plan artifacts.
+        /// </summary>
+        public int LargeGdocMaxCharsPerPart
+        {
+            get
+            {
+                const int fallbackValue = 180000;
+                var value = GetAppSetting(AppSettingsKey.LargeGdocMaxCharsPerPart, false);
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    return fallbackValue;
+                }
+
+                if (!int.TryParse(value.Trim(), out var parsedValue))
+                {
+                    return fallbackValue;
+                }
+
+                return parsedValue > 0 ? parsedValue : fallbackValue;
+            }
+        }
+
+        /// <summary>
+        /// Future processor setting. Reserved for split implementations that create temp docs.
+        /// </summary>
+        public bool KeepTemporarySplitDocs
+        {
+            get
+            {
+                var value = GetAppSetting(AppSettingsKey.KeepTemporarySplitDocs, false);
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    return false;
+                }
+
+                return bool.TryParse(value.Trim(), out var parsedValue) && parsedValue;
+            }
+        }
+
+        /// <summary>
+        /// Number of retries for transient Drive API/network failures per request.
+        /// </summary>
+        public int DriveApiTransientRetryCount
+        {
+            get
+            {
+                const int fallbackValue = 4;
+                var value = GetAppSetting(AppSettingsKey.DriveApiTransientRetryCount, false);
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    return fallbackValue;
+                }
+
+                if (!int.TryParse(value.Trim(), out var parsedValue))
+                {
+                    return fallbackValue;
+                }
+
+                return parsedValue > 0 ? parsedValue : fallbackValue;
+            }
+        }
+
+        /// <summary>
+        /// Initial backoff delay for transient retries. Delay doubles per attempt.
+        /// </summary>
+        public int DriveApiRetryBaseDelayMs
+        {
+            get
+            {
+                const int fallbackValue = 750;
+                var value = GetAppSetting(AppSettingsKey.DriveApiRetryBaseDelayMs, false);
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    return fallbackValue;
+                }
+
+                if (!int.TryParse(value.Trim(), out var parsedValue))
+                {
+                    return fallbackValue;
+                }
+
+                return parsedValue > 0 ? parsedValue : fallbackValue;
+            }
+        }
+
+        /// <summary>
+        /// Http timeout for Drive requests (export/list). Useful for large exports.
+        /// </summary>
+        public int DriveApiRequestTimeoutSeconds
+        {
+            get
+            {
+                const int fallbackValue = 600;
+                var value = GetAppSetting(AppSettingsKey.DriveApiRequestTimeoutSeconds, false);
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    return fallbackValue;
+                }
+
+                if (!int.TryParse(value.Trim(), out var parsedValue))
+                {
+                    return fallbackValue;
+                }
+
+                return parsedValue > 0 ? parsedValue : fallbackValue;
             }
         }
     }

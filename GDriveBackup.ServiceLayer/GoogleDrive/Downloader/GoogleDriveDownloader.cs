@@ -7,7 +7,13 @@ using GDriveBackup.Core.Extensions;
 using GDriveBackup.Crosscutting.Configuration;
 using GDriveBackup.Crosscutting.Logging;
 using GDriveBackup.DataLayer.Repository;
+using Google;
+using Google.Apis.Download;
 using Google.Apis.Drive.v3;
+using System.Threading.Tasks;
+using System.Collections.Concurrent;
+using System.Net;
+using System.Threading;
 
 // ReSharper disable StringLiteralTypo
 // ReSharper disable IdentifierTypo
@@ -17,19 +23,34 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
     public abstract class GoogleDriveDownloader
     {
         private readonly DriveService _service;
+        private static readonly ConcurrentDictionary<string, object> DestinationFileLocks =
+            new ConcurrentDictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
 
-        private void DoFailedHandler(string localPath, string localExt, string localMimeType, Google.Apis.Drive.v3.Data.File file)
+        private void DoFailedHandler(
+            string localPath,
+            string localExt,
+            string localMimeType,
+            Google.Apis.Drive.v3.Data.File file,
+            bool isRetryable,
+            string failureReason)
         {
             if (this.OnFailed == null)
             {
-                this.Logger.Info($"Google Drive downloader is not assigned a client OnFailed handler.");
+                this.Logger.Warn($"Google Drive downloader has no OnFailed handler; failure details will not be queued.");
                 return;
             }
 
             try
             {
-                this.OnFailed( localPath, localExt, localMimeType, file );
+                this.OnFailed(
+                    localPath,
+                    localExt,
+                    localMimeType,
+                    file,
+                    isRetryable,
+                    failureReason
+                );
             }
             catch (Exception ex)
             {
@@ -38,6 +59,136 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
         }
         
         
+        private bool IsNonRetryableTooLargeExport(Exception ex)
+        {
+            var current = ex;
+            while (current != null)
+            {
+                if (current is GoogleApiException googleApiException)
+                {
+                    var message = googleApiException.Message ?? string.Empty;
+                    if (googleApiException.HttpStatusCode == HttpStatusCode.Forbidden
+                        && message.IndexOf("too large to be exported", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        return true;
+                    }
+                }
+
+                current = current.InnerException;
+            }
+
+            return false;
+        }
+
+        private bool IsTransientException(Exception ex)
+        {
+            var current = ex;
+            while (current != null)
+            {
+                if (current is TaskCanceledException)
+                {
+                    return true;
+                }
+
+                if (current is GoogleApiException googleApiException)
+                {
+                    var statusCode = (int)googleApiException.HttpStatusCode;
+                    if (statusCode == 429 || statusCode == 500 || statusCode == 502 || statusCode == 503 || statusCode == 504)
+                    {
+                        return true;
+                    }
+                }
+
+                current = current.InnerException;
+            }
+
+            return false;
+        }
+
+        private async Task DownloadAndPromoteFileAsync(
+            string dstFullPath,
+            string localMimeType,
+            Google.Apis.Drive.v3.Data.File file)
+        {
+            var settings = ApplicationSettings.GetInstance();
+            var maxAttempts = settings.DriveApiTransientRetryCount;
+            var baseDelayMs = settings.DriveApiRetryBaseDelayMs;
+
+            for (var attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                var tmpFullPath = $"{dstFullPath}.partial.{Guid.NewGuid():N}";
+                try
+                {
+                    var getRequest = this._service.Files.Export(
+                        file.Id,
+                        localMimeType
+                    );
+
+                    // Write to a temporary file first. This prevents a failed/partial download
+                    // from truncating a previously good backup file to 0 bytes.
+                    using (var filestream = new FileStream(tmpFullPath, FileMode.CreateNew, FileAccess.Write))
+                    {
+                        var downloadProgress = await getRequest.DownloadAsync(filestream);
+                        filestream.Flush();
+
+                        // A request can complete without throwing, yet still produce an empty file.
+                        // Validate both transfer status and resulting size before promoting output.
+                        if (downloadProgress.Status != DownloadStatus.Completed || filestream.Length <= 0)
+                        {
+                            var progressDetails =
+                                $"Status [{downloadProgress.Status}], Bytes [{filestream.Length}], DownloadedBytes [{downloadProgress.BytesDownloaded}].";
+
+                            if (downloadProgress.Exception != null)
+                            {
+                                throw new InvalidOperationException(
+                                    $"Download validation failed. {progressDetails}",
+                                    downloadProgress.Exception);
+                            }
+
+                            throw new InvalidOperationException(
+                                $"Download validation failed. {progressDetails}");
+                        }
+                    }
+
+                    // Multiple Drive files can normalize to the same local filename.
+                    // Serialize final replacement per destination to avoid clobber races.
+                    var fileLock = DestinationFileLocks.GetOrAdd(dstFullPath, _ => new object());
+                    lock (fileLock)
+                    {
+                        if (File.Exists(dstFullPath))
+                        {
+                            File.Delete(dstFullPath);
+                        }
+
+                        File.Move(tmpFullPath, dstFullPath);
+                    }
+
+                    return;
+                }
+                catch (Exception ex) when (attempt < maxAttempts && this.IsTransientException(ex))
+                {
+                    var delayMs = baseDelayMs * (int)Math.Pow(2, attempt - 1);
+                    this.Logger.Warn(
+                        $"Transient export failure for [{file.Name}] (Id [{file.Id}]) attempt {attempt}/{maxAttempts}. Retrying in {delayMs} ms.",
+                        new Dictionary<string, object>
+                        {
+                            ["FileId"] = file?.Id ?? string.Empty,
+                            ["MimeType"] = file?.MimeType ?? string.Empty,
+                            ["RetryAttempt"] = attempt,
+                            ["RetryMax"] = maxAttempts
+                        });
+                    await Task.Delay(delayMs).ConfigureAwait(false);
+                }
+                finally
+                {
+                    if (File.Exists(tmpFullPath))
+                    {
+                        File.Delete(tmpFullPath);
+                    }
+                }
+            }
+        }
+
         protected readonly IApplicationLogger Logger;
 
         
@@ -48,7 +199,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
             this.Logger = ApplicationLogger.GetInstance();
         }
 
-        protected async void DoDownloadFile( string localPath, string localExt, string localMimeType, Google.Apis.Drive.v3.Data.File file )
+        protected async Task DoDownloadFileAsync( string localPath, string localExt, string localMimeType, Google.Apis.Drive.v3.Data.File file )
         {
             var dstFullPath = Path.Combine(
                 localPath,
@@ -57,31 +208,52 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
                     localExt
                 )
             );
-            this.Logger.Info($"Download [{file.Name}] to [{dstFullPath}].");
+            this.Logger.Debug($"Download [{file.Name}] to [{dstFullPath}].");
 
             try
             {
+                await this.DownloadAndPromoteFileAsync(dstFullPath, localMimeType, file);
 
-                var getRequest = this._service.Files.Export(
-                    file.Id,
-                    /*Export converts to:*/ localMimeType
-                );
-
-                using (var filestream = new FileStream(dstFullPath, FileMode.Create, FileAccess.Write))
-                {
-                    // This will overwrite an existing file by the same name.
-                    await getRequest.DownloadAsync(filestream);
-                }
+                this.Logger.Debug($"Download completed [{file.Name}] => [{dstFullPath}].");
 
             }
             catch ( Exception ex )
             {
-                this.Logger.Error( $"Downloading [{file.Name}] to [{dstFullPath}] failed.", ex );
-                this.DoFailedHandler(localPath, localExt, localMimeType, file);
+                var isTooLargeExport = this.IsNonRetryableTooLargeExport(ex);
+                var isRetryable = true;
+                var failureReason = ex.Message;
+
+                // Some files cannot be exported by Drive due to size limits.
+                // Mark those as non-retryable to avoid guaranteed-fail retries.
+                if (isTooLargeExport
+                    && localMimeType == MimeTypeConstants.ApplicationPdf
+                    && file.MimeType == MimeTypeConstants.Gdoc)
+                {
+                    isRetryable = false;
+                    failureReason = "PDF export too large for Drive export API.";
+                }
+
+                if (isTooLargeExport)
+                {
+                    isRetryable = false;
+                }
+
+                this.Logger.Error(
+                    $"Downloading [{file.Name}] (Id [{file.Id}], MimeType [{file.MimeType}]) to [{dstFullPath}] failed.",
+                    ex );
+
+                this.DoFailedHandler(
+                    localPath,
+                    localExt,
+                    localMimeType,
+                    file,
+                    isRetryable,
+                    failureReason
+                );
             }
         }
 
-        public abstract void DownloadFile( string localPath, Google.Apis.Drive.v3.Data.File file );
+        public abstract Task DownloadFileAsync( string localPath, Google.Apis.Drive.v3.Data.File file );
 
 
 
@@ -118,7 +290,10 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
             var request = this._service.Files.List();
 
             request.Q = this.BuildQuery( mimeType, lastRunDate );
-            //request.Fields = "ModifiedTime";
+            // Larger pages reduce API round trips when listing files by mime type.
+            request.PageSize = 1000;
+            // Only retrieve metadata required for naming/export decisions.
+            request.Fields = "nextPageToken, files(id, name, mimeType, modifiedTime, parents)";
 
             var results = request.ExecuteAsync().Result;
 
@@ -155,8 +330,20 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
         /// <param name="since"></param>
         public abstract void DownloadAll( DateTime since );
 
+        public void DownloadFile( string localPath, Google.Apis.Drive.v3.Data.File file )
+        {
+            this.DownloadFileAsync( localPath, file ).GetAwaiter().GetResult();
+        }
 
-        public delegate void OnFailedDelegate(string localPath, string localExt, string localMimeType, Google.Apis.Drive.v3.Data.File file);
+
+        public delegate void OnFailedDelegate(
+            string localPath,
+            string localExt,
+            string localMimeType,
+            Google.Apis.Drive.v3.Data.File file,
+            bool isRetryable,
+            string failureReason
+        );
         public OnFailedDelegate OnFailed { get; set; }
     }
 }

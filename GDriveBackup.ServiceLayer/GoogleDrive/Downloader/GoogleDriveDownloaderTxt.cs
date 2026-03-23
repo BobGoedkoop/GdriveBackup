@@ -1,6 +1,7 @@
 ﻿using System;
 using GDriveBackup.Core.Constants;
 using Google.Apis.Drive.v3;
+using System.Threading.Tasks;
 using File = Google.Apis.Drive.v3.Data.File;
 
 // ReSharper disable StringLiteralTypo
@@ -15,14 +16,14 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
         {
         }
 
-        public override void DownloadFile( string localPath, File file )
+        public override Task DownloadFileAsync( string localPath, File file )
         {
-            base.DoDownloadFile( localPath, FileExtensionConstants.Txt, MimeTypeConstants.TxtPlain, file );
+            return base.DoDownloadFileAsync( localPath, FileExtensionConstants.Txt, MimeTypeConstants.TxtPlain, file );
         }
 
         public override void DownloadAll( DateTime since )
         {
-            base.DoDownloadAll( MimeTypeConstants.Gdoc, since );
+            base.DoDownloadAll( MimeTypeConstants.TxtPlain, since );
         }
     }
 }
