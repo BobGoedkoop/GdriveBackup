@@ -14,6 +14,8 @@ using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Threading;
+using System.Security.Cryptography;
+using System.Text;
 
 // ReSharper disable StringLiteralTypo
 // ReSharper disable IdentifierTypo
@@ -22,6 +24,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
 {
     public abstract class GoogleDriveDownloader
     {
+        private const int MaxSafeWindowsPathLength = 240;
         private readonly DriveService _service;
         private static readonly ConcurrentDictionary<string, object> DestinationFileLocks =
             new ConcurrentDictionary<string, object>(StringComparer.OrdinalIgnoreCase);
@@ -118,6 +121,12 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
 
             for (var attempt = 1; attempt <= maxAttempts; attempt++)
             {
+                var destinationDirectory = Path.GetDirectoryName(dstFullPath);
+                if (!string.IsNullOrWhiteSpace(destinationDirectory))
+                {
+                    Directory.CreateDirectory(destinationDirectory);
+                }
+
                 var tmpFullPath = $"{dstFullPath}.partial.{Guid.NewGuid():N}";
                 try
                 {
@@ -222,13 +231,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
 
         protected async Task DoDownloadFileAsync( string localPath, string localExt, string localMimeType, Google.Apis.Drive.v3.Data.File file )
         {
-            var dstFullPath = Path.Combine(
-                localPath,
-                Path.ChangeExtension(
-                    file.Name.ToValidFileName().ReplaceSpaceCharacters(),
-                    localExt
-                )
-            );
+            var dstFullPath = this.BuildDestinationPath(localPath, localExt, file);
             this.Logger.Debug($"Download [{file.Name}] to [{dstFullPath}].");
 
             try
@@ -271,6 +274,60 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
                     isRetryable,
                     failureReason
                 );
+            }
+        }
+
+        private string BuildDestinationPath(string localPath, string localExt, Google.Apis.Drive.v3.Data.File file)
+        {
+            var safeFileName = Path.ChangeExtension(
+                file.Name.ToValidFileName().ReplaceSpaceCharacters(),
+                localExt);
+            var fullPath = Path.Combine(localPath, safeFileName);
+            if (fullPath.Length <= MaxSafeWindowsPathLength)
+            {
+                return fullPath;
+            }
+
+            // Deep folder structures + recursive split suffixes can exceed Windows path limits.
+            // Shorten only the filename and keep the folder structure intact.
+            var extension = Path.GetExtension(safeFileName);
+            var stem = Path.GetFileNameWithoutExtension(safeFileName);
+            var stableHash = this.ComputeStableHash($"{file?.Id}|{safeFileName}").Substring(0, 10);
+
+            var availableNameLength = Math.Max(12, MaxSafeWindowsPathLength - localPath.Length - 1);
+            var reservedLength = extension.Length + 1 + stableHash.Length;
+            var maxStemLength = Math.Max(4, availableNameLength - reservedLength);
+            if (stem.Length > maxStemLength)
+            {
+                stem = stem.Substring(0, maxStemLength);
+            }
+
+            var shortenedFileName = $"{stem}_{stableHash}{extension}";
+            var shortenedFullPath = Path.Combine(localPath, shortenedFileName);
+            if (shortenedFullPath.Length > MaxSafeWindowsPathLength)
+            {
+                shortenedFileName = $"{stableHash}{extension}";
+                shortenedFullPath = Path.Combine(localPath, shortenedFileName);
+            }
+
+            this.Logger.Warn(
+                $"Path too long; using shortened output filename for [{file?.Name}] (Id [{file?.Id}]).");
+            return shortenedFullPath;
+        }
+
+        private string ComputeStableHash(string value)
+        {
+            using (var sha1 = SHA1.Create())
+            {
+                var data = Encoding.UTF8.GetBytes(value ?? string.Empty);
+                var hash = sha1.ComputeHash(data);
+                var builder = new StringBuilder(hash.Length * 2);
+                foreach (var b in hash)
+                {
+                    builder.AppendFormat("{0:x2}", b);
+                }
+
+                return builder.ToString();
             }
         }
 

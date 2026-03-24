@@ -1,18 +1,16 @@
 using GDriveBackup.Core.Constants;
-using GDriveBackup.Core.Extensions;
 using Google.Apis.Drive.v3.Data;
 using System;
 
 namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
 {
     /// <summary>
-    /// Planner for oversized Google Docs export failures.
-    /// This class does not mutate Drive content; it prepares split-plan metadata that
-    /// can be used by a later execute phase (Apps Script or Docs API worker).
+    /// Oversized Google Doc detection + fallback metadata.
+    /// The fallback is "link + snapshot + clear report", not in-place splitting.
     /// </summary>
     public class GoogleDriveDownloaderGdocForLargeFiles
     {
-        public class LargeGdocSplitPlanItem
+        public class LargeGdocFallbackPlanItem
         {
             public string Name { get; set; }
             public string Id { get; set; }
@@ -20,10 +18,6 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
             public string SourceWebLink { get; set; }
             public string FailureReason { get; set; }
             public string AttemptedExportMimeType { get; set; }
-            public string SuggestedSplitMode { get; set; }
-            public int SuggestedMaxCharsPerPart { get; set; }
-            public bool KeepTemporarySplitDocs { get; set; }
-            public string SuggestedOutputFileNamePrefix { get; set; }
             public string ManualActionHint { get; set; }
         }
 
@@ -67,15 +61,12 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
             return $"https://docs.google.com/document/d/{file.Id}/edit";
         }
 
-        public static LargeGdocSplitPlanItem CreateSplitPlanItem(
+        public static LargeGdocFallbackPlanItem CreateFallbackPlanItem(
             File file,
             string failureReason,
-            string attemptedExportMimeType,
-            string splitMode,
-            int maxCharsPerPart,
-            bool keepTemporarySplitDocs)
+            string attemptedExportMimeType)
         {
-            return new LargeGdocSplitPlanItem
+            return new LargeGdocFallbackPlanItem
             {
                 Name = file?.Name,
                 Id = file?.Id,
@@ -83,11 +74,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
                 SourceWebLink = BuildSourceWebLink(file),
                 FailureReason = failureReason,
                 AttemptedExportMimeType = attemptedExportMimeType,
-                SuggestedSplitMode = splitMode,
-                SuggestedMaxCharsPerPart = maxCharsPerPart,
-                KeepTemporarySplitDocs = keepTemporarySplitDocs,
-                SuggestedOutputFileNamePrefix = file?.Name.ToValidFileName().ReplaceSpaceCharacters(),
-                ManualActionHint = "Split this document into smaller parts (e.g. Heading1 boundaries), then rerun backup."
+                ManualActionHint = "Export manually from Google Docs UI when Drive API PDF export limit is exceeded."
             };
         }
     }

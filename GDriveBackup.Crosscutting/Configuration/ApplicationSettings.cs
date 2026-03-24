@@ -24,9 +24,6 @@ namespace GDriveBackup.Crosscutting.Configuration
             public const string JsonCredentialsPath = "JsonCredentialsPath";
             public const string LocalStorePath = "LocalStorePath";
             public const string MaxConcurrentDownloads = "MaxConcurrentDownloads";
-            public const string LargeGdocSplitMode = "LargeGdocSplitMode";
-            public const string LargeGdocMaxCharsPerPart = "LargeGdocMaxCharsPerPart";
-            public const string KeepTemporarySplitDocs = "KeepTemporarySplitDocs";
             public const string DriveApiTransientRetryCount = "DriveApiTransientRetryCount";
             public const string DriveApiRetryBaseDelayMs = "DriveApiRetryBaseDelayMs";
             public const string DriveApiMaxConcurrentListRequests = "DriveApiMaxConcurrentListRequests";
@@ -153,63 +150,6 @@ namespace GDriveBackup.Crosscutting.Configuration
                 }
 
                 return parsedValue > 0 ? parsedValue : fallbackValue;
-            }
-        }
-
-        /// <summary>
-        /// Strategy hint for future split processor implementations.
-        /// </summary>
-        public string LargeGdocSplitMode
-        {
-            get
-            {
-                var value = GetAppSetting(AppSettingsKey.LargeGdocSplitMode, false);
-                if (string.IsNullOrWhiteSpace(value))
-                {
-                    return "Heading1";
-                }
-
-                return value.Trim();
-            }
-        }
-
-        /// <summary>
-        /// Advisory upper bound used when creating split-plan artifacts.
-        /// </summary>
-        public int LargeGdocMaxCharsPerPart
-        {
-            get
-            {
-                const int fallbackValue = 180000;
-                var value = GetAppSetting(AppSettingsKey.LargeGdocMaxCharsPerPart, false);
-                if (string.IsNullOrWhiteSpace(value))
-                {
-                    return fallbackValue;
-                }
-
-                if (!int.TryParse(value.Trim(), out var parsedValue))
-                {
-                    return fallbackValue;
-                }
-
-                return parsedValue > 0 ? parsedValue : fallbackValue;
-            }
-        }
-
-        /// <summary>
-        /// Future processor setting. Reserved for split implementations that create temp docs.
-        /// </summary>
-        public bool KeepTemporarySplitDocs
-        {
-            get
-            {
-                var value = GetAppSetting(AppSettingsKey.KeepTemporarySplitDocs, false);
-                if (string.IsNullOrWhiteSpace(value))
-                {
-                    return false;
-                }
-
-                return bool.TryParse(value.Trim(), out var parsedValue) && parsedValue;
             }
         }
 

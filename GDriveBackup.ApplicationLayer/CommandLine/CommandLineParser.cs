@@ -38,22 +38,14 @@ namespace GDriveBackup.ApplicationLayer.CommandLine
                 _commandLineModel.BackupChanges = true;
                 _commandLineModel.AutoSplitFileId = options.AutoSplitFileId ?? string.Empty;
             }
-
-            if (options.Backup == "all")
+            else if (options.Backup == "all")
             {
                 _commandLineModel.BackupAll = true;
                 _commandLineModel.AutoSplitFileId = options.AutoSplitFileId ?? string.Empty;
             }
-
-            if (options.Backup == "split")
+            else if (!string.IsNullOrWhiteSpace(options.Backup))
             {
-                _commandLineModel.BackupSplitOnly = true;
-                _commandLineModel.SplitFileId = options.SplitFileId ?? string.Empty;
-
-                if (string.IsNullOrWhiteSpace(_commandLineModel.SplitFileId))
-                {
-                    _commandLineModel.Error = true;
-                }
+                _commandLineModel.Error = true;
             }
         }
 
