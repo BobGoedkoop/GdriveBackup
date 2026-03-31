@@ -10,17 +10,6 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
     /// </summary>
     public class GoogleDriveDownloaderGdocForLargeFiles
     {
-        public class LargeGdocFallbackPlanItem
-        {
-            public string Name { get; set; }
-            public string Id { get; set; }
-            public string MimeType { get; set; }
-            public string SourceWebLink { get; set; }
-            public string FailureReason { get; set; }
-            public string AttemptedExportMimeType { get; set; }
-            public string ManualActionHint { get; set; }
-        }
-
         public static bool IsOversizedGdocExportFailure(
             File file,
             string attemptedExportMimeType,
@@ -59,23 +48,6 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
             }
 
             return $"https://docs.google.com/document/d/{file.Id}/edit";
-        }
-
-        public static LargeGdocFallbackPlanItem CreateFallbackPlanItem(
-            File file,
-            string failureReason,
-            string attemptedExportMimeType)
-        {
-            return new LargeGdocFallbackPlanItem
-            {
-                Name = file?.Name,
-                Id = file?.Id,
-                MimeType = file?.MimeType,
-                SourceWebLink = BuildSourceWebLink(file),
-                FailureReason = failureReason,
-                AttemptedExportMimeType = attemptedExportMimeType,
-                ManualActionHint = "Export manually from Google Docs UI when Drive API PDF export limit is exceeded."
-            };
         }
     }
 }

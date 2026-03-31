@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -68,7 +68,7 @@
   <ItemGroup>
     <Compile Include="GoogleDrive\Authenticate\GoogleDriveAuthenticate.cs" />
     <Compile Include="GoogleDrive\Downloader\GoogleDriveDownloaderUnsupportedFile.cs" />
-    <Compile Include="GoogleDrive\Downloader\GoogleDriveLargeGdocAutoSplitter.cs" />
+    <Compile Include="GoogleDrive\Downloader\GoogleDriveLargeGdocFallbackProcessor.cs" />
     <Compile Include="GoogleDrive\Downloader\GoogleDriveDownloaderGdocForLargeFiles.cs" />
     <Compile Include="GoogleDrive\Downloader\GoogleDriveDownloaderImage.cs" />
     <Compile Include="GoogleDrive\Downloader\GoogleDriveDownloaderAudio.cs" />
@@ -106,3 +106,4 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
+

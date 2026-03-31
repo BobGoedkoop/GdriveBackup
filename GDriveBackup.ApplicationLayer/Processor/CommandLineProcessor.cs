@@ -29,7 +29,7 @@ namespace GDriveBackup.ApplicationLayer.Processor
 
             if (cmdLineModel.Error)
             {
-                this._logger.Error("Invalid command line arguments. Use: --backup changes|all [--auto-split-file-id <GoogleDriveFileId>].");
+                this._logger.Error("Invalid command line arguments. Use: --backup changes|all.");
                 return;
             }
 
@@ -40,12 +40,12 @@ namespace GDriveBackup.ApplicationLayer.Processor
 
             if (cmdLineModel.BackupAll)
             {
-                var backup = new BackupDomain(runDateDomain.DefaultLastRunDate, cmdLineModel.AutoSplitFileId);
+                var backup = new BackupDomain(runDateDomain.DefaultLastRunDate);
                 backup.Start();
             }
             else if (cmdLineModel.BackupChanges)
             {
-                var backup = new BackupDomain(runDateDomain.LastRunDate, cmdLineModel.AutoSplitFileId);
+                var backup = new BackupDomain(runDateDomain.LastRunDate);
                 backup.Start();
             }
         }
@@ -57,9 +57,6 @@ namespace GDriveBackup.ApplicationLayer.Processor
             Console.WriteLine("      changes  Backup only files changed since LastRunDate.");
             Console.WriteLine("      all      Backup all files.");
             Console.WriteLine();
-            Console.WriteLine("  --auto-split-file-id <GoogleDriveFileId>");
-            Console.WriteLine("      Optional filter for oversized-doc fallback during --backup changes|all.");
-            Console.WriteLine();
             Console.WriteLine("  -c, --config <reset|resetLastRunDate>");
             Console.WriteLine("      reset             Reset config state.");
             Console.WriteLine("      resetLastRunDate  Reset LastRunDate checkpoint.");
@@ -69,7 +66,6 @@ namespace GDriveBackup.ApplicationLayer.Processor
             Console.WriteLine();
             Console.WriteLine("Examples:");
             Console.WriteLine("  GDriveBackup.exe --backup changes");
-            Console.WriteLine("  GDriveBackup.exe --backup changes --auto-split-file-id 1xysnoNlOmRI-rbnuvAxzxs8ho4AghurRDPm22YtxlI8");
             Console.WriteLine("  GDriveBackup.exe --backup all");
         }
     }

@@ -8,9 +8,7 @@ using Google;
 using Google.Apis.Drive.v3;
 using Google.Apis.Drive.v3.Data;
 using Google.Apis.Requests;
-using System.Net;
 using System.Threading;
-using System.Threading.Tasks;
 
 // ReSharper disable StringLiteralTypo
 // ReSharper disable IdentifierTypo
@@ -19,64 +17,12 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
 {
     public class GoogleDriveFolder : GoogleDriveFile
     {
-        private static readonly ThreadLocal<Random> RetryJitterRandom =
-            new ThreadLocal<Random>(() => new Random(Guid.NewGuid().GetHashCode()));
         private static readonly Lazy<SemaphoreSlim> ListRequestSemaphore =
             new Lazy<SemaphoreSlim>(() =>
             {
                 var maxConcurrent = ApplicationSettings.GetInstance().DriveApiMaxConcurrentListRequests;
                 return new SemaphoreSlim(maxConcurrent, maxConcurrent);
             });
-
-        private static bool IsTransientException(Exception ex)
-        {
-            var current = ex;
-            while (current != null)
-            {
-                if (current is TaskCanceledException)
-                {
-                    return true;
-                }
-
-                if (current is GoogleApiException googleApiException)
-                {
-                    var statusCode = (int)googleApiException.HttpStatusCode;
-                    if (statusCode == 429 || statusCode == 500 || statusCode == 502 || statusCode == 503 || statusCode == 504)
-                    {
-                        return true;
-                    }
-                }
-
-                current = current.InnerException;
-            }
-
-            return false;
-        }
-
-        private T ExecuteWithTransientRetry<T>(Func<T> action, string actionDescription)
-        {
-            var settings = ApplicationSettings.GetInstance();
-            var maxAttempts = settings.DriveApiTransientRetryCount;
-            var baseDelayMs = settings.DriveApiRetryBaseDelayMs;
-
-            for (var attempt = 1; attempt <= maxAttempts; attempt++)
-            {
-                try
-                {
-                    return this.ExecuteWithListThrottle(action);
-                }
-                catch (Exception ex) when (attempt < maxAttempts && IsTransientException(ex))
-                {
-                    var delayMs = CalculateBackoffDelayWithJitter(baseDelayMs, attempt);
-                    base.Logger.Warn(
-                        $"{actionDescription} failed with transient error (attempt {attempt}/{maxAttempts}). Retrying in {delayMs} ms.");
-                    Thread.Sleep(delayMs);
-                }
-            }
-
-            // Last attempt should return/throw from inside the loop; this is a defensive fallback.
-            return this.ExecuteWithListThrottle(action);
-        }
 
         private T ExecuteWithListThrottle<T>(Func<T> action)
         {
@@ -90,15 +36,6 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
             {
                 semaphore.Release();
             }
-        }
-
-        private static int CalculateBackoffDelayWithJitter(int baseDelayMs, int attempt)
-        {
-            var exponentialDelay = baseDelayMs * (int)Math.Pow(2, attempt - 1);
-            var jitterRange = Math.Max(1, baseDelayMs / 2);
-            var jitterMs = RetryJitterRandom.Value.Next(0, jitterRange + 1);
-            var delay = exponentialDelay + jitterMs;
-            return delay > 0 ? delay : baseDelayMs;
         }
 
         public GoogleDriveFolder( DriveService service ) 
@@ -118,7 +55,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
 
         public FileList GetSubFolders( string parentGDriveFileId )
         {
-            return this.ExecuteWithTransientRetry(() =>
+            return this.ExecuteWithListThrottle(() =>
             {
                 // By default this will return ALL files
                 var request = base.Service.Files.List();
@@ -155,7 +92,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
 
                 base.Logger.Debug( $"Retrieved [{folders.Files.Count}] folders." );
                 return folders;
-            }, $"List subfolders for parent [{parentGDriveFileId}]");
+            });
         }
 
 
@@ -182,7 +119,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
 
         private FileList DoGetFilesInFolder( string parentGDriveFileId, DateTime since )
         {
-            return this.ExecuteWithTransientRetry(() =>
+            return this.ExecuteWithListThrottle(() =>
             {
                 var request = base.Service.Files.List();
                 request.Q = this.BuildQueryForGetFilesInFolder(parentGDriveFileId, since);
@@ -210,7 +147,7 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Files
 
                 base.Logger.Debug( $"Retrieved [{files.Files.Count}] files." );
                 return files;
-            }, $"List files in folder [{parentGDriveFileId}]");
+            });
         }
 
 

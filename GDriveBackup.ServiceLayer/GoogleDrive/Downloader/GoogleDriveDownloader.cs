@@ -13,7 +13,6 @@ using Google.Apis.Drive.v3;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Net;
-using System.Threading;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -28,13 +27,10 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
         private readonly DriveService _service;
         private static readonly ConcurrentDictionary<string, object> DestinationFileLocks =
             new ConcurrentDictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-        private static readonly ThreadLocal<Random> RetryJitterRandom =
-            new ThreadLocal<Random>(() => new Random(Guid.NewGuid().GetHashCode()));
 
 
         private void DoFailedHandler(
             string localPath,
-            string localExt,
             string localMimeType,
             Google.Apis.Drive.v3.Data.File file,
             bool isRetryable,
@@ -50,7 +46,6 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
             {
                 this.OnFailed(
                     localPath,
-                    localExt,
                     localMimeType,
                     file,
                     isRetryable,
@@ -85,138 +80,81 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
             return false;
         }
 
-        private bool IsTransientException(Exception ex)
-        {
-            var current = ex;
-            while (current != null)
-            {
-                if (current is TaskCanceledException)
-                {
-                    return true;
-                }
-
-                if (current is GoogleApiException googleApiException)
-                {
-                    var statusCode = (int)googleApiException.HttpStatusCode;
-                    if (statusCode == 429 || statusCode == 500 || statusCode == 502 || statusCode == 503 || statusCode == 504)
-                    {
-                        return true;
-                    }
-                }
-
-                current = current.InnerException;
-            }
-
-            return false;
-        }
-
         private async Task DownloadAndPromoteFileAsync(
             string dstFullPath,
             string localMimeType,
             Google.Apis.Drive.v3.Data.File file)
         {
-            var settings = ApplicationSettings.GetInstance();
-            var maxAttempts = settings.DriveApiTransientRetryCount;
-            var baseDelayMs = settings.DriveApiRetryBaseDelayMs;
-
-            for (var attempt = 1; attempt <= maxAttempts; attempt++)
+            var destinationDirectory = Path.GetDirectoryName(dstFullPath);
+            if (!string.IsNullOrWhiteSpace(destinationDirectory))
             {
-                var destinationDirectory = Path.GetDirectoryName(dstFullPath);
-                if (!string.IsNullOrWhiteSpace(destinationDirectory))
-                {
-                    Directory.CreateDirectory(destinationDirectory);
-                }
+                Directory.CreateDirectory(destinationDirectory);
+            }
 
-                var tmpFullPath = $"{dstFullPath}.partial.{Guid.NewGuid():N}";
-                try
-                {
-                    // Use media download for non-Google-native files (same source/target mime type).
-                    // Export is only valid for Google Docs Editors types and fails for files like text/plain.
-                    var useDirectMediaDownload =
-                        string.Equals(file?.MimeType, localMimeType, StringComparison.OrdinalIgnoreCase);
+            var tmpFullPath = $"{dstFullPath}.partial.{Guid.NewGuid():N}";
+            try
+            {
+                // Use media download for non-Google-native files (same source/target mime type).
+                // Export is only valid for Google Docs Editors types and fails for files like text/plain.
+                var useDirectMediaDownload =
+                    string.Equals(file?.MimeType, localMimeType, StringComparison.OrdinalIgnoreCase);
 
-                    // Write to a temporary file first. This prevents a failed/partial download
-                    // from truncating a previously good backup file to 0 bytes.
-                    using (var filestream = new FileStream(tmpFullPath, FileMode.CreateNew, FileAccess.Write))
+                // Write to a temporary file first. This prevents a failed/partial download
+                // from truncating a previously good backup file to 0 bytes.
+                using (var filestream = new FileStream(tmpFullPath, FileMode.CreateNew, FileAccess.Write))
+                {
+                    IDownloadProgress downloadProgress;
+                    if (useDirectMediaDownload)
                     {
-                        IDownloadProgress downloadProgress;
-                        if (useDirectMediaDownload)
-                        {
-                            var getRequest = this._service.Files.Get(file.Id);
-                            downloadProgress = await getRequest.DownloadAsync(filestream).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            var exportRequest = this._service.Files.Export(file.Id, localMimeType);
-                            downloadProgress = await exportRequest.DownloadAsync(filestream).ConfigureAwait(false);
-                        }
-                        filestream.Flush();
+                        var getRequest = this._service.Files.Get(file.Id);
+                        downloadProgress = await getRequest.DownloadAsync(filestream).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        var exportRequest = this._service.Files.Export(file.Id, localMimeType);
+                        downloadProgress = await exportRequest.DownloadAsync(filestream).ConfigureAwait(false);
+                    }
+                    filestream.Flush();
 
-                        // A request can complete without throwing, yet still produce an empty file.
-                        // Validate both transfer status and resulting size before promoting output.
-                        if (downloadProgress.Status != DownloadStatus.Completed || filestream.Length <= 0)
+                    // A request can complete without throwing, yet still produce an empty file.
+                    // Validate both transfer status and resulting size before promoting output.
+                    if (downloadProgress.Status != DownloadStatus.Completed || filestream.Length <= 0)
+                    {
+                        var progressDetails =
+                            $"Status [{downloadProgress.Status}], Bytes [{filestream.Length}], DownloadedBytes [{downloadProgress.BytesDownloaded}].";
+
+                        if (downloadProgress.Exception != null)
                         {
-                            var progressDetails =
-                                $"Status [{downloadProgress.Status}], Bytes [{filestream.Length}], DownloadedBytes [{downloadProgress.BytesDownloaded}].";
-
-                            if (downloadProgress.Exception != null)
-                            {
-                                throw new InvalidOperationException(
-                                    $"Download validation failed. {progressDetails}",
-                                    downloadProgress.Exception);
-                            }
-
                             throw new InvalidOperationException(
-                                $"Download validation failed. {progressDetails}");
-                        }
-                    }
-
-                    // Multiple Drive files can normalize to the same local filename.
-                    // Serialize final replacement per destination to avoid clobber races.
-                    var fileLock = DestinationFileLocks.GetOrAdd(dstFullPath, _ => new object());
-                    lock (fileLock)
-                    {
-                        if (File.Exists(dstFullPath))
-                        {
-                            File.Delete(dstFullPath);
+                                $"Download validation failed. {progressDetails}",
+                                downloadProgress.Exception);
                         }
 
-                        File.Move(tmpFullPath, dstFullPath);
+                        throw new InvalidOperationException(
+                            $"Download validation failed. {progressDetails}");
+                    }
+                }
+
+                // Multiple Drive files can normalize to the same local filename.
+                // Serialize final replacement per destination to avoid clobber races.
+                var fileLock = DestinationFileLocks.GetOrAdd(dstFullPath, _ => new object());
+                lock (fileLock)
+                {
+                    if (File.Exists(dstFullPath))
+                    {
+                        File.Delete(dstFullPath);
                     }
 
-                    return;
-                }
-                catch (Exception ex) when (attempt < maxAttempts && this.IsTransientException(ex))
-                {
-                    var delayMs = CalculateBackoffDelayWithJitter(baseDelayMs, attempt);
-                    this.Logger.Warn(
-                        $"Transient export failure for [{file.Name}] (Id [{file.Id}]) attempt {attempt}/{maxAttempts}. Retrying in {delayMs} ms.",
-                        new Dictionary<string, object>
-                        {
-                            ["FileId"] = file?.Id ?? string.Empty,
-                            ["MimeType"] = file?.MimeType ?? string.Empty,
-                            ["RetryAttempt"] = attempt,
-                            ["RetryMax"] = maxAttempts
-                        });
-                    await Task.Delay(delayMs).ConfigureAwait(false);
-                }
-                finally
-                {
-                    if (File.Exists(tmpFullPath))
-                    {
-                        File.Delete(tmpFullPath);
-                    }
+                    File.Move(tmpFullPath, dstFullPath);
                 }
             }
-        }
-
-        private static int CalculateBackoffDelayWithJitter(int baseDelayMs, int attempt)
-        {
-            var exponentialDelay = baseDelayMs * (int)Math.Pow(2, attempt - 1);
-            var jitterRange = Math.Max(1, baseDelayMs / 2);
-            var jitterMs = RetryJitterRandom.Value.Next(0, jitterRange + 1);
-            var delay = exponentialDelay + jitterMs;
-            return delay > 0 ? delay : baseDelayMs;
+            finally
+            {
+                if (File.Exists(tmpFullPath))
+                {
+                    File.Delete(tmpFullPath);
+                }
+            }
         }
 
         protected readonly IApplicationLogger Logger;
@@ -268,7 +206,6 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
 
                 this.DoFailedHandler(
                     localPath,
-                    localExt,
                     localMimeType,
                     file,
                     isRetryable,
@@ -416,7 +353,6 @@ namespace GDriveBackup.ServiceLayer.GoogleDrive.Downloader
 
         public delegate void OnFailedDelegate(
             string localPath,
-            string localExt,
             string localMimeType,
             Google.Apis.Drive.v3.Data.File file,
             bool isRetryable,

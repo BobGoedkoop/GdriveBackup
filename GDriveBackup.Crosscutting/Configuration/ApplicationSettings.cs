@@ -24,8 +24,6 @@ namespace GDriveBackup.Crosscutting.Configuration
             public const string JsonCredentialsPath = "JsonCredentialsPath";
             public const string LocalStorePath = "LocalStorePath";
             public const string MaxConcurrentDownloads = "MaxConcurrentDownloads";
-            public const string DriveApiTransientRetryCount = "DriveApiTransientRetryCount";
-            public const string DriveApiRetryBaseDelayMs = "DriveApiRetryBaseDelayMs";
             public const string DriveApiMaxConcurrentListRequests = "DriveApiMaxConcurrentListRequests";
             public const string DriveApiRequestTimeoutSeconds = "DriveApiRequestTimeoutSeconds";
             public const string EnableConsoleHeartbeat = "EnableConsoleHeartbeat";
@@ -139,52 +137,6 @@ namespace GDriveBackup.Crosscutting.Configuration
                 const int fallbackValue = 6;
 
                 var value = GetAppSetting(AppSettingsKey.MaxConcurrentDownloads, false);
-                if (string.IsNullOrWhiteSpace(value))
-                {
-                    return fallbackValue;
-                }
-
-                if (!int.TryParse(value.Trim(), out var parsedValue))
-                {
-                    return fallbackValue;
-                }
-
-                return parsedValue > 0 ? parsedValue : fallbackValue;
-            }
-        }
-
-        /// <summary>
-        /// Number of retries for transient Drive API/network failures per request.
-        /// </summary>
-        public int DriveApiTransientRetryCount
-        {
-            get
-            {
-                const int fallbackValue = 4;
-                var value = GetAppSetting(AppSettingsKey.DriveApiTransientRetryCount, false);
-                if (string.IsNullOrWhiteSpace(value))
-                {
-                    return fallbackValue;
-                }
-
-                if (!int.TryParse(value.Trim(), out var parsedValue))
-                {
-                    return fallbackValue;
-                }
-
-                return parsedValue > 0 ? parsedValue : fallbackValue;
-            }
-        }
-
-        /// <summary>
-        /// Initial backoff delay for transient retries. Delay doubles per attempt.
-        /// </summary>
-        public int DriveApiRetryBaseDelayMs
-        {
-            get
-            {
-                const int fallbackValue = 750;
-                var value = GetAppSetting(AppSettingsKey.DriveApiRetryBaseDelayMs, false);
                 if (string.IsNullOrWhiteSpace(value))
                 {
                     return fallbackValue;

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CommandLine;
 using GDriveBackup.ApplicationLayer.CommandLine.Model;
 
@@ -36,12 +37,10 @@ namespace GDriveBackup.ApplicationLayer.CommandLine
             if (options.Backup == "changes")
             {
                 _commandLineModel.BackupChanges = true;
-                _commandLineModel.AutoSplitFileId = options.AutoSplitFileId ?? string.Empty;
             }
             else if (options.Backup == "all")
             {
                 _commandLineModel.BackupAll = true;
-                _commandLineModel.AutoSplitFileId = options.AutoSplitFileId ?? string.Empty;
             }
             else if (!string.IsNullOrWhiteSpace(options.Backup))
             {
@@ -57,17 +56,23 @@ namespace GDriveBackup.ApplicationLayer.CommandLine
         public static CommandLineModel Parse(string[] args)
         {
             _commandLineModel = new CommandLineModel();
-            if (args != null)
+
+            // Treat missing or whitespace-only command line as "show help".
+            var noEffectiveArgs = args == null || args.Length == 0 || args.All(string.IsNullOrWhiteSpace);
+            if (noEffectiveArgs)
             {
-                foreach (var arg in args)
+                _commandLineModel.HelpRequested = true;
+                return _commandLineModel;
+            }
+
+            foreach (var arg in args)
+            {
+                if (string.Equals(arg, "/h", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(arg, "/?", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(arg, "?", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (string.Equals(arg, "/h", StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(arg, "/?", StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(arg, "?", StringComparison.OrdinalIgnoreCase))
-                    {
-                        _commandLineModel.HelpRequested = true;
-                        return _commandLineModel;
-                    }
+                    _commandLineModel.HelpRequested = true;
+                    return _commandLineModel;
                 }
             }
 

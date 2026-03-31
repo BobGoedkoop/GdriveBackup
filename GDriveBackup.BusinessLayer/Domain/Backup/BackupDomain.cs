@@ -22,12 +22,11 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
     public class FailedDownload
     {
         public string LocalPath { get; set; } = string.Empty;
-        public string LocalExt { get; set; } = string.Empty;
-        public string LocelMimeType { get; set; } = string.Empty;
+        public string LocalMimeType { get; set; } = string.Empty;
         public Google.Apis.Drive.v3.Data.File GDriveFile { get; set; } = null;
         public bool IsRetryable { get; set; } = true;
         public string FailureReason { get; set; } = string.Empty;
-        public bool ResolvedByAutoSplit { get; set; } = false;
+        public string ManualMarkerPath { get; set; } = string.Empty;
     }
 
 
@@ -48,29 +47,20 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
         private long _filesDiscovered;
         private long _downloadAttempts;
         private long _initialFailuresDetected;
-        private long _retryAttempts;
-        private long _retryCompletedCalls;
         private long _nonRetryableFailures;
-        private string _failedExportsReportPath;
-        private string _largeGdocSplitPlanPath;
-        private string _largeGdocSplitExecutionPath;
-        private long _largeGdocSplitCandidates;
-        private long _largeGdocAutoSplitAttempted;
-        private long _largeGdocAutoSplitSucceeded;
-        private long _largeGdocAutoSplitFailed;
-        private bool _largeGdocAutoSplitDryRun;
-        private long _largeGdocAutoSplitUnresolvedCount;
-        private string _largeGdocAutoSplitUnresolvedLinksPreview;
+        private string _failedDownloadsReportPath;
+        private long _largeGdocFallbackAttempted;
+        private long _largeGdocFallbackFailed;
+        private long _largeGdocFallbackUnresolvedCount;
         private readonly BackupConsoleHeartbeat _consoleHeartbeat;
         private readonly BackupRunReportService _reportService;
-        private readonly BackupLargeGdocAutoSplitService _autoSplitService;
+        private readonly BackupLargeGdocFallbackService _largeGdocFallbackService;
 
 
         #region Private section
 
         private void DoDownloadFailedHandler(
             string localPath,
-            string localExt,
             string localMimeType,
             Google.Apis.Drive.v3.Data.File file,
             bool isRetryable,
@@ -110,8 +100,7 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
             this._failedDownloadList.Add(new FailedDownload()
             {
                 LocalPath = localPath,
-                LocalExt = localExt,
-                LocelMimeType = localMimeType,
+                LocalMimeType = localMimeType,
                 GDriveFile = file,
                 IsRetryable = isRetryable,
                 FailureReason = failureReason
@@ -237,14 +226,12 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
             await this._downloadSemaphore.WaitAsync().ConfigureAwait(false);
             try
             {
-                Interlocked.Increment(ref this._retryAttempts);
                 Interlocked.Increment(ref this._downloadAttempts);
                 this._logger.Warn(
                     $"RunId [{this._runId}] retrying download: Name [{failedDownload.GDriveFile.Name}], Id [{failedDownload.GDriveFile.Id}], LocalPath [{failedDownload.LocalPath}].",
                     new Dictionary<string, object>
                     {
                         ["RunId"] = this._runId,
-                        ["RetryAttempt"] = this._retryAttempts,
                         ["FileId"] = failedDownload.GDriveFile.Id ?? string.Empty,
                         ["MimeType"] = failedDownload.GDriveFile.MimeType ?? string.Empty,
                         ["LocalPath"] = failedDownload.LocalPath ?? string.Empty
@@ -257,7 +244,6 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
                 await downloader
                     .DownloadFileAsync(failedDownload.LocalPath, failedDownload.GDriveFile)
                     .ConfigureAwait(false);
-                Interlocked.Increment(ref this._retryCompletedCalls);
             }
             catch (Exception ex)
             {
@@ -274,14 +260,12 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
         #endregion
 
 
-        public BackupDomain(DateTime lastRunDate, string autoSplitFileId = "")
+        public BackupDomain(DateTime lastRunDate)
         {
-            this._lastRunDate = lastRunDate;
-            var largeGdocAutoSplitFileId = (autoSplitFileId ?? string.Empty).Trim();
-            this._logger = ApplicationLogger.GetInstance();
+            this._lastRunDate = lastRunDate;            this._logger = ApplicationLogger.GetInstance();
             this._consoleHeartbeat = new BackupConsoleHeartbeat(this._logger);
             this._reportService = new BackupRunReportService(this._logger);
-            this._autoSplitService = new BackupLargeGdocAutoSplitService(this._logger, largeGdocAutoSplitFileId);
+            this._largeGdocFallbackService = new BackupLargeGdocFallbackService(this._logger);
 
             // Keep one place where we resolve and sanitize tuning knobs from config.
             var configuredConcurrency = ApplicationSettings.GetInstance().MaxConcurrentDownloads;
@@ -306,19 +290,11 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
             this._filesDiscovered = 0;
             this._downloadAttempts = 0;
             this._initialFailuresDetected = 0;
-            this._retryAttempts = 0;
-            this._retryCompletedCalls = 0;
             this._nonRetryableFailures = 0;
-            this._failedExportsReportPath = string.Empty;
-            this._largeGdocSplitPlanPath = string.Empty;
-            this._largeGdocSplitExecutionPath = string.Empty;
-            this._largeGdocSplitCandidates = 0;
-            this._largeGdocAutoSplitAttempted = 0;
-            this._largeGdocAutoSplitSucceeded = 0;
-            this._largeGdocAutoSplitFailed = 0;
-            this._largeGdocAutoSplitDryRun = false;
-            this._largeGdocAutoSplitUnresolvedCount = 0;
-            this._largeGdocAutoSplitUnresolvedLinksPreview = string.Empty;
+            this._failedDownloadsReportPath = string.Empty;
+            this._largeGdocFallbackAttempted = 0;
+            this._largeGdocFallbackFailed = 0;
+            this._largeGdocFallbackUnresolvedCount = 0;
             // Global download throttle to avoid overwhelming Drive API and local I/O.
             this._downloadSemaphore = new SemaphoreSlim(this._maxConcurrentDownloads, this._maxConcurrentDownloads);
             var runCompleted = false;
@@ -355,24 +331,19 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
                 await Task.WhenAll(this._folderDownloadTasks).ConfigureAwait(false);
 
                 await this.RetryFailedDownloadsAsync(service).ConfigureAwait(false);
-                var autoSplitResult = await this._autoSplitService
+                var fallbackResult = await this._largeGdocFallbackService
                     .ExecuteForFailedDownloadsAsync(service, credential, this._failedDownloadList.ToList(), this._runId)
                     .ConfigureAwait(false);
-                if (autoSplitResult != null)
+                if (fallbackResult != null)
                 {
-                    this._largeGdocSplitExecutionPath = autoSplitResult.ReportPath ?? string.Empty;
-                    this._largeGdocAutoSplitAttempted = autoSplitResult.Attempted;
-                    this._largeGdocAutoSplitSucceeded = autoSplitResult.Succeeded;
-                    this._largeGdocAutoSplitFailed = autoSplitResult.Failed;
-                    this._largeGdocAutoSplitDryRun = autoSplitResult.DryRun;
-                    var unresolvedLinks = autoSplitResult.Items
+                    this._largeGdocFallbackAttempted = fallbackResult.Attempted;
+                    this._largeGdocFallbackFailed = fallbackResult.Failed;
+                    this._largeGdocFallbackUnresolvedCount = fallbackResult.Items
                         .Where(item => string.Equals(item.Status, "failed", StringComparison.OrdinalIgnoreCase)
                                        && !string.IsNullOrWhiteSpace(item.SourceFileId))
-                        .Select(item => $"https://docs.google.com/document/d/{item.SourceFileId}/edit")
+                        .Select(item => item.SourceFileId)
                         .Distinct(StringComparer.Ordinal)
-                        .ToList();
-                    this._largeGdocAutoSplitUnresolvedCount = unresolvedLinks.Count;
-                    this._largeGdocAutoSplitUnresolvedLinksPreview = string.Join(";", unresolvedLinks.Take(10));
+                        .Count();
                 }
                 this.UpdateLastRunDate();
                 runCompleted = true;
@@ -385,26 +356,29 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
             }
             finally
             {
+                var duration = DateTime.UtcNow - this._startRunDate;
+                var runStatus = runCompleted ? "completed" : "aborted";
+
                 // Best-effort report generation must run even when backup aborts early.
                 // This ensures failed-export artifacts are still available for manual follow-up.
                 try
                 {
-                    if (string.IsNullOrWhiteSpace(this._failedExportsReportPath))
+                    if (string.IsNullOrWhiteSpace(this._failedDownloadsReportPath))
                     {
-                        this._failedExportsReportPath = this._reportService.WriteFailedExportsReportAndLogSummary(
-                            this._failedDownloadList.ToList(),
-                            this._runId,
-                            this._startRunDate);
-                    }
-
-                    if (string.IsNullOrWhiteSpace(this._largeGdocSplitPlanPath))
-                    {
-                        this._largeGdocSplitPlanPath = this._reportService.WriteLargeGdocFallbackPlanReportAndLogSummary(
-                            this._failedDownloadList.ToList(),
+                        this._failedDownloadsReportPath = this._reportService.WriteFailedDownloadsReportAndLogSummary(
+                            this._failedDownloadList?.ToList() ?? new List<FailedDownload>(),
                             this._runId,
                             this._startRunDate,
-                            out var splitCandidatesCount);
-                        Interlocked.Exchange(ref this._largeGdocSplitCandidates, splitCandidatesCount);
+                            runStatus,
+                            duration,
+                            this._foldersVisited,
+                            this._filesDiscovered,
+                            this._downloadAttempts,
+                            this._initialFailuresDetected,
+                            this._nonRetryableFailures,
+                            this._largeGdocFallbackAttempted,
+                            this._largeGdocFallbackFailed,
+                            this._largeGdocFallbackUnresolvedCount);
                     }
                 }
                 catch (Exception ex)
@@ -414,10 +388,8 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
                         ex);
                 }
 
-                var duration = DateTime.UtcNow - this._startRunDate;
-                var runStatus = runCompleted ? "completed" : "aborted";
                 this._logger.Info(
-                    $"Backup run {runStatus}. RunId [{this._runId}], Duration [{duration:dd\\.hh\\:mm\\:ss\\:fff}], FoldersVisited [{this._foldersVisited}], FilesDiscovered [{this._filesDiscovered}], DownloadCalls [{this._downloadAttempts}], InitialFailures [{this._initialFailuresDetected}], RetryAttempts [{this._retryAttempts}], RetryCallsCompleted [{this._retryCompletedCalls}], NonRetryableFailures [{this._nonRetryableFailures}], FailedExportsReport [{this._failedExportsReportPath}], LargeGdocFallbackCandidates [{this._largeGdocSplitCandidates}], LargeGdocFallbackPlanReport [{this._largeGdocSplitPlanPath}], LargeGdocFallbackExecutionReport [{this._largeGdocSplitExecutionPath}], LargeGdocFallbackAttempted [{this._largeGdocAutoSplitAttempted}], LargeGdocFallbackSucceeded [{this._largeGdocAutoSplitSucceeded}], LargeGdocFallbackFailed [{this._largeGdocAutoSplitFailed}], LargeGdocFallbackDryRun [{this._largeGdocAutoSplitDryRun}], LargeGdocFallbackUnresolvedCount [{this._largeGdocAutoSplitUnresolvedCount}], LargeGdocFallbackUnresolvedLinksPreview [{this._largeGdocAutoSplitUnresolvedLinksPreview}].");
+                    $"Backup run {runStatus}. RunId [{this._runId}], Duration [{duration:dd\\.hh\\:mm\\:ss\\:fff}], FoldersVisited [{this._foldersVisited}], FilesDiscovered [{this._filesDiscovered}], DownloadCalls [{this._downloadAttempts}], InitialFailures [{this._initialFailuresDetected}], NonRetryableFailures [{this._nonRetryableFailures}], FailedDownloadsReport [{this._failedDownloadsReportPath}], LargeGdocFallbackAttempted [{this._largeGdocFallbackAttempted}], LargeGdocFallbackFailed [{this._largeGdocFallbackFailed}], LargeGdocFallbackUnresolvedCount [{this._largeGdocFallbackUnresolvedCount}].");
 
                 this._downloadSemaphore?.Dispose();
                 this._consoleHeartbeat.Stop();
@@ -426,3 +398,4 @@ namespace GDriveBackup.BusinessLayer.Domain.Backup
         }
     }
 }
+
